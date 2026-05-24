@@ -1,0 +1,397 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Share+Tech+Mono&display=swap');
+@import "tailwindcss";
+
+/* ─── CyberKavach 2.0 Design System (Cyber Red Theme) ───────── */
+
+:root {
+  --ck-primary: #dc2626;      /* Red 600 */
+  --ck-primary-light: #f87171; /* Red 400 */
+  --ck-primary-dark: #991b1b;  /* Red 800 */
+  --ck-accent: #ff003c;       /* Neon Cyber Red */
+  --ck-accent-light: #ef4444;  /* Red 500 */
+  
+  --ck-success: #10b981;
+  --ck-warning: #f59e0b;
+  --ck-danger: #7f1d1d;       /* Red 900 */
+
+  /* Default Light Mode (Forced Dark for Cyber theme) */
+  --ck-bg: #000000;
+  --ck-bg-secondary: #0a0a0a;
+  --ck-bg-card: #121212;
+  --ck-text: #f1f5f9;
+  --ck-text-secondary: #94a3b8;
+  --ck-text-muted: #475569;
+  --ck-border: #262626;
+  --ck-glass-bg: rgba(18, 18, 18, 0.7);
+  --ck-glass-border: rgba(220, 38, 38, 0.2); /* Red tint */
+  --ck-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.8), 0 2px 4px -2px rgba(0, 0, 0, 0.8);
+  --ck-shadow-lg: 0 10px 15px -3px rgba(220, 38, 38, 0.15), 0 4px 6px -4px rgba(220, 38, 38, 0.1);
+}
+
+.dark {
+  --ck-bg: #000000;
+  --ck-bg-secondary: #050505;
+  --ck-bg-card: #0a0a0a;
+  --ck-text: #f8fafc;
+  --ck-text-secondary: #a1a1aa;
+  --ck-text-muted: #52525b;
+  --ck-border: #27272a;
+  --ck-glass-bg: rgba(10, 10, 10, 0.75);
+  --ck-glass-border: rgba(255, 0, 60, 0.25);
+  --ck-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.9), 0 2px 4px -2px rgba(0, 0, 0, 0.8);
+  --ck-shadow-lg: 0 0px 20px -3px rgba(255, 0, 60, 0.2), 0 4px 6px -4px rgba(255, 0, 60, 0.1);
+}
+
+* { scrollbar-width: thin; scrollbar-color: var(--ck-primary-dark) transparent; }
+
+body {
+  background: var(--ck-bg);
+  color: var(--ck-text);
+  font-family: 'Inter', system-ui, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.ck-monospace {
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* ─── Glass ────────────────────────────────────────────────── */
+.ck-glass {
+  background: var(--ck-glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--ck-glass-border);
+}
+
+/* ─── Card ─────────────────────────────────────────────────── */
+.ck-card {
+  background: var(--ck-bg-card);
+  border: 1px solid var(--ck-border);
+  border-radius: 1rem;
+  box-shadow: var(--ck-shadow);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.ck-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255, 0, 60, 0.1), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+.ck-card:hover {
+  box-shadow: var(--ck-shadow-lg);
+  border-color: rgba(220, 38, 38, 0.4);
+  transform: translateY(-2px);
+}
+.ck-card:hover::after {
+  left: 200%;
+  transition: left 0.7s ease-in-out;
+}
+
+/* ─── Buttons ──────────────────────────────────────────────── */
+.ck-btn-primary {
+  background: linear-gradient(135deg, var(--ck-primary-dark), var(--ck-primary));
+  color: white;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.5rem; /* sharper corners */
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: 1px solid var(--ck-primary-light);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'Share Tech Mono', monospace;
+}
+.ck-btn-primary:hover {
+  background: linear-gradient(135deg, var(--ck-primary), var(--ck-accent));
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(255, 0, 60, 0.6);
+  border-color: var(--ck-accent);
+}
+.ck-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; border-color: var(--ck-border); background: var(--ck-bg-secondary); color: var(--ck-text-muted); }
+
+.ck-btn-secondary {
+  background: transparent;
+  color: var(--ck-primary-light);
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: 1px solid var(--ck-border);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'Share Tech Mono', monospace;
+}
+.ck-btn-secondary:hover { 
+  background: rgba(220, 38, 38, 0.1); 
+  border-color: var(--ck-primary); 
+  color: var(--ck-accent);
+  box-shadow: 0 0 10px rgba(220, 38, 38, 0.2) inset;
+}
+
+.ck-btn-danger {
+  background: transparent;
+  color: var(--ck-danger);
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: 1px solid var(--ck-danger);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'Share Tech Mono', monospace;
+}
+.ck-btn-danger:hover { 
+  background: var(--ck-danger); 
+  color: white;
+  box-shadow: 0 0 15px rgba(127, 29, 29, 0.8); 
+}
+
+/* ─── Input ────────────────────────────────────────────────── */
+.ck-input {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--ck-border);
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--ck-text);
+  font-size: 0.875rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  outline: none;
+  font-family: 'Share Tech Mono', monospace;
+  box-sizing: border-box;
+}
+.ck-input:focus { border-color: var(--ck-accent); box-shadow: 0 0 12px rgba(255, 0, 60, 0.4); background: rgba(0, 0, 0, 0.8); }
+.ck-input::placeholder { color: var(--ck-text-muted); }
+
+.ck-input-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.ck-input-icon-wrapper > .lucide {
+  position: absolute;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+.ck-input-with-icon {
+  padding-left: 2.75rem !important;
+}
+
+/* ─── Cyber Search Box ─────────────────────────────────────── */
+.ck-search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 0.5rem;
+}
+.ck-search-container::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 100%; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--ck-accent), transparent);
+  animation: cyber-scan 3s linear infinite;
+  z-index: 10;
+}
+@keyframes cyber-scan {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+.ck-search-input {
+  border-color: rgba(220, 38, 38, 0.3);
+  background: rgba(20, 0, 0, 0.6);
+  padding-left: 2.75rem !important;
+}
+.ck-search-input:focus {
+  border-color: var(--ck-accent);
+  box-shadow: 0 0 15px rgba(255, 0, 60, 0.3) inset;
+}
+
+.ck-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ck-primary-light);
+  margin-bottom: 0.375rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* ─── Gradient Background ──────────────────────────────────── */
+.ck-gradient-bg {
+  background: #000000;
+  position: relative;
+  overflow: hidden;
+}
+.ck-gradient-bg::before {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: radial-gradient(circle at 20% 30%, rgba(220, 38, 38, 0.2) 0%, transparent 40%),
+              radial-gradient(circle at 80% 70%, rgba(255, 0, 60, 0.15) 0%, transparent 40%);
+  animation: cyber-pulse 12s ease-in-out infinite alternate;
+}
+.ck-gradient-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(255, 0, 60, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 0, 60, 0.08) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: grid-move 20s linear infinite;
+  pointer-events: none;
+}
+@keyframes cyber-pulse {
+  0% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.1); }
+  100% { opacity: 0.3; transform: scale(0.95); }
+}
+@keyframes grid-move {
+  0% { background-position: 0 0; }
+  100% { background-position: 50px 50px; }
+}
+
+/* ─── Badges ───────────────────────────────────────────────── */
+.ck-badge {
+  display: inline-flex; align-items: center;
+  padding: 0.125rem 0.625rem; border-radius: 0.25rem;
+  font-size: 0.75rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  font-family: 'Share Tech Mono', monospace;
+  border: 1px solid transparent;
+}
+.ck-badge-primary { background: rgba(220, 38, 38, 0.15); color: var(--ck-primary-light); border-color: rgba(220, 38, 38, 0.4); }
+.ck-badge-success { background: rgba(16, 185, 129, 0.1); color: var(--ck-success); border-color: rgba(16, 185, 129, 0.4); }
+.ck-badge-warning { background: rgba(245, 158, 11, 0.1); color: var(--ck-warning); border-color: rgba(245, 158, 11, 0.4); }
+.ck-badge-danger { background: rgba(255, 0, 60, 0.2); color: #ff4d6d; border-color: rgba(255, 0, 60, 0.5); box-shadow: 0 0 5px rgba(255, 0, 60, 0.4); }
+.ck-badge-info { background: rgba(220, 38, 38, 0.1); color: var(--ck-text); border-color: var(--ck-border); }
+
+/* ─── Sidebar ──────────────────────────────────────────────── */
+.ck-sidebar {
+  width: 260px; min-height: 100vh;
+  background: #050505;
+  border-right: 1px solid var(--ck-border);
+  display: flex; flex-direction: column;
+  transition: width 0.3s ease;
+  position: relative;
+}
+.ck-sidebar::before {
+  content: '';
+  position: absolute; right: -1px; top: 0; bottom: 0; width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(220, 38, 38, 0.5), transparent);
+}
+.ck-sidebar-link {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.625rem 1rem; border-radius: 0.5rem;
+  color: var(--ck-text-secondary); font-weight: 500; font-size: 0.875rem;
+  transition: all 0.2s ease; text-decoration: none; margin: 0.125rem 0;
+  position: relative;
+  overflow: hidden;
+}
+.ck-sidebar-link:hover { background: rgba(220, 38, 38, 0.05); color: var(--ck-text); border-left: 2px solid var(--ck-primary-dark); padding-left: calc(1rem - 2px); }
+.ck-sidebar-link.active { 
+  background: linear-gradient(90deg, rgba(220, 38, 38, 0.15), transparent); 
+  color: var(--ck-accent); 
+  border-left: 3px solid var(--ck-accent);
+  padding-left: calc(1rem - 3px);
+  text-shadow: 0 0 8px rgba(255, 0, 60, 0.4);
+}
+
+/* ─── Animations ───────────────────────────────────────────── */
+@keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-in { animation: fade-in 0.4s ease forwards; }
+@keyframes slide-in-right { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+.animate-slide-in { animation: slide-in-right 0.3s ease forwards; }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+.ck-skeleton {
+  background: linear-gradient(90deg, var(--ck-border) 25%, #1a1a1a 50%, var(--ck-border) 75%);
+  background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 0.25rem;
+}
+
+/* ─── Glitch Effect ────────────────────────────────────────── */
+.glitch-text {
+  position: relative;
+  color: white;
+}
+.glitch-text::before, .glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--ck-bg);
+}
+.glitch-text::before {
+  left: 2px;
+  text-shadow: -1px 0 red;
+  clip: rect(24px, 550px, 90px, 0);
+  animation: glitch-anim 3s infinite linear alternate-reverse;
+}
+.glitch-text::after {
+  left: -2px;
+  text-shadow: -1px 0 blue;
+  clip: rect(85px, 550px, 140px, 0);
+  animation: glitch-anim 2s infinite linear alternate-reverse;
+}
+@keyframes glitch-anim {
+  0% { clip: rect(4px, 9999px, 36px, 0); }
+  20% { clip: rect(65px, 9999px, 98px, 0); }
+  40% { clip: rect(11px, 9999px, 20px, 0); }
+  60% { clip: rect(98px, 9999px, 80px, 0); }
+  80% { clip: rect(20px, 9999px, 5px, 0); }
+  100% { clip: rect(50px, 9999px, 40px, 0); }
+}
+
+/* ─── Modal ────────────────────────────────────────────────── */
+.ck-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8);
+  display: flex; align-items: center; justify-content: center; z-index: 50; padding: 1rem;
+  backdrop-filter: blur(8px);
+}
+
+/* ─── Table ────────────────────────────────────────────────── */
+.ck-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.ck-table th { 
+  text-align: left; padding: 0.75rem 1rem; font-size: 0.75rem; font-weight: 600; 
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--ck-primary-light); 
+  border-bottom: 1px solid var(--ck-primary-dark);
+  font-family: 'Share Tech Mono', monospace;
+  background: rgba(220, 38, 38, 0.05);
+}
+.ck-table td { padding: 0.75rem 1rem; font-size: 0.875rem; border-bottom: 1px solid var(--ck-border); color: var(--ck-text); }
+.ck-table tr { transition: background-color 0.2s ease; }
+.ck-table tr:hover td { background: rgba(220, 38, 38, 0.05); color: var(--ck-accent); }

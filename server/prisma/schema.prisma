@@ -1,0 +1,382 @@
+// ==========================================================
+// CyberKavach 2.0 — Prisma Schema
+// ==========================================================
+// Covers: Users, Roles, Events, Teams, Attendance, Certificates,
+//         Approvals, Appreciation, Badges, Notifications, Audit, Settings
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────
+
+enum Role {
+  FACULTY
+  STUDENT_COORDINATOR
+  TECH
+  CONTENT
+  SOCIAL_MEDIA
+  MEMBER
+  GUEST
+}
+
+enum ApprovalStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum ApprovalType {
+  EVENT_PERMISSION
+  RESOURCE_VENUE
+  BUDGET
+  SOCIAL_MEDIA_POST
+  CONTENT_PUBLISH
+  CERTIFICATE_AUTH
+  EXTERNAL_COLLAB
+}
+
+enum AttendanceType {
+  CHECK_IN
+  CHECK_OUT
+}
+
+enum CertificateStatus {
+  PENDING
+  GENERATING
+  GENERATED
+  FAILED
+}
+
+enum NotificationType {
+  APPROVAL_UPDATE
+  EVENT_REMINDER
+  TEAM_UPDATE
+  POINTS_RECEIVED
+  BADGE_EARNED
+  SYSTEM
+  ACCOUNT_APPROVED
+}
+
+// ─── User ──────────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  name          String
+  studentId     String?  @unique
+  phone         String?
+  department    String?
+  institute     String?
+  semester      String?
+  role          Role     @default(GUEST)
+  avatarUrl     String?
+  isActive      Boolean  @default(true)
+  isApproved    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  approvalRequests     ApprovalRequest[]    @relation("Requester")
+  approvalDecisions    ApprovalStep[]       @relation("Approver")
+  eventRegistrations   EventRegistration[]
+  attendanceRecords    Attendance[]
+  pointsGiven          AppreciationPoint[]  @relation("PointGiver")
+  pointsReceived       AppreciationPoint[]  @relation("PointReceiver")
+  auditLogs            AuditLog[]
+  createdEvents        Event[]              @relation("EventCreator")
+  notifications        Notification[]
+  badges               UserBadge[]
+  teamsLed             Team[]               @relation("TeamLeader")
+  teamMemberships      TeamMember[]
+  createdTemplates     CertificateTemplate[] @relation("TemplateCreator")
+
+  @@map("users")
+}
+
+// ─── Approval System ────────────────────────────────────────
+
+model ApprovalRequest {
+  id            String         @id @default(uuid())
+  title         String
+  description   String?
+  type          ApprovalType
+  status        ApprovalStatus @default(PENDING)
+  metadata      Json?
+  currentLevel  Int            @default(1)
+  maxLevel      Int            @default(2)
+  escalatedAt   DateTime?
+  lastActionAt  DateTime?
+
+  requesterId   String
+  requester     User           @relation("Requester", fields: [requesterId], references: [id])
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  steps         ApprovalStep[]
+
+  @@map("approval_requests")
+}
+
+model ApprovalStep {
+  id          String         @id @default(uuid())
+  level       Int
+  role        Role
+  status      ApprovalStatus @default(PENDING)
+  comment     String?
+
+  approverId  String?
+  approver    User?          @relation("Approver", fields: [approverId], references: [id])
+
+  requestId   String
+  request     ApprovalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  decidedAt   DateTime?
+  createdAt   DateTime       @default(now())
+
+  @@unique([requestId, level])
+  @@map("approval_steps")
+}
+
+// ─── Events & Teams ─────────────────────────────────────────
+
+model Event {
+  id                   String    @id @default(uuid())
+  title                String
+  description          String?
+  venue                String?
+  startDate            DateTime
+  endDate              DateTime
+  registrationDeadline DateTime?
+  posterUrl            String?
+  slug                 String    @unique
+  rules                String?
+  tags                 String[]  @default([])
+  minTeamSize          Int?
+  maxTeamSize          Int?
+  isPublished          Boolean   @default(false)
+  isDraft              Boolean   @default(true)
+  maxCapacity          Int?
+  eventType            String    @default("general")
+  googleFormUrl        String?
+  documentUrl          String?
+
+  creatorId            String
+  creator              User      @relation("EventCreator", fields: [creatorId], references: [id])
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  registrations        EventRegistration[]
+  attendance           Attendance[]
+  certificates         Certificate[]
+  teams                Team[]
+  appreciationPoints   AppreciationPoint[]
+
+  @@map("events")
+}
+
+model Team {
+  id        String   @id @default(uuid())
+  name      String
+  teamCode  String   @unique
+  qrCode    String?
+
+  leaderId  String
+  leader    User     @relation("TeamLeader", fields: [leaderId], references: [id])
+
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members       TeamMember[]
+  registrations EventRegistration[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id       String @id @default(uuid())
+  teamId   String
+  team     Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+
+  joinedAt DateTime @default(now())
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+model EventRegistration {
+  id        String   @id @default(uuid())
+  userId    String
+  eventId   String
+  teamId    String?
+
+  user      User     @relation(fields: [userId], references: [id])
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  team      Team?    @relation(fields: [teamId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, eventId])
+  @@map("event_registrations")
+}
+
+// ─── Attendance ─────────────────────────────────────────────
+
+model Attendance {
+  id        String         @id @default(uuid())
+  type      AttendanceType
+  timestamp DateTime       @default(now())
+  isLate    Boolean        @default(false)
+  isEarly   Boolean        @default(false)
+
+  userId    String
+  eventId   String
+
+  user      User  @relation(fields: [userId], references: [id])
+  event     Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("attendance")
+}
+
+// ─── Certificates ───────────────────────────────────────────
+
+model CertificateTemplate {
+  id        String   @id @default(uuid())
+  name      String
+  fileUrl   String
+  fileType  String   @default("png")
+  fields    Json?
+  createdById String
+  createdBy User    @relation("TemplateCreator", fields: [createdById], references: [id])
+  createdAt DateTime @default(now())
+
+  certificates Certificate[]
+
+  @@map("certificate_templates")
+}
+
+model Certificate {
+  id             String            @id @default(uuid())
+  uniqueCode     String            @unique
+  recipientName  String
+  recipientEmail String?
+  eventId        String
+  templateId     String?
+  fileUrl        String?
+  checksum       String?
+  status         CertificateStatus @default(PENDING)
+  generatedAt    DateTime?
+  createdAt      DateTime          @default(now())
+
+  event          Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  template       CertificateTemplate? @relation(fields: [templateId], references: [id])
+
+  @@map("certificates")
+}
+
+// ─── Appreciation / Gamification ────────────────────────────
+
+model AppreciationPoint {
+  id        String   @id @default(uuid())
+  points    Int
+  category  String
+  reason    String?
+  isDeduction Boolean @default(false)
+
+  giverId    String
+  giver      User    @relation("PointGiver", fields: [giverId], references: [id])
+
+  receiverId String
+  receiver   User    @relation("PointReceiver", fields: [receiverId], references: [id])
+
+  eventId    String?
+  event      Event?  @relation(fields: [eventId], references: [id])
+
+  createdAt  DateTime @default(now())
+
+  @@map("appreciation_points")
+}
+
+model Badge {
+  id             String   @id @default(uuid())
+  name           String   @unique
+  description    String?
+  icon           String?
+  pointThreshold Int
+  createdAt      DateTime @default(now())
+
+  users UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String
+  badgeId   String
+  awardedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  badge Badge @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+// ─── Notifications ──────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(uuid())
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  metadata  Json?
+
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+// ─── Audit Log ──────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  context   Json?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}
+
+// ─── Club Settings ──────────────────────────────────────────
+
+model ClubSettings {
+  id                String   @id @default(uuid())
+  key               String   @unique
+  value             Json
+  updatedAt         DateTime @updatedAt
+
+  @@map("club_settings")
+}

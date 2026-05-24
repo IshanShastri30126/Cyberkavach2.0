@@ -1,0 +1,356 @@
+import { Router, Request, Response } from "express";
+import { z } from "zod";
+import prisma from "../lib/prisma";
+import { authenticate, requireMinRole } from "../middlewares/auth";
+import { validate } from "../middlewares/validate";
+import { auditLog } from "../middlewares/auditLog";
+import { upload } from "../middlewares/upload";
+import { sendEventPublishedEmail } from "../lib/emailService";
+import { sendBulkNotification } from "../lib/notificationService";
+
+const router = Router();
+
+function generateSlug(title: string): string {
+  return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Date.now().toString(36);
+}
+
+const createEventSchema = z.object({
+  title: z.string().min(3).max(200),
+  description: z.string().optional(),
+  venue: z.string().optional(),
+  startDate: z.string(),
+  endDate: z.string(),
+  registrationDeadline: z.string().optional(),
+  rules: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  minTeamSize: z.number().int().positive().optional(),
+  maxTeamSize: z.number().int().positive().optional(),
+  maxCapacity: z.number().int().positive().optional(),
+  eventType: z.string().optional(),
+  googleFormUrl: z.string().url().optional().or(z.literal("")),
+  documentUrl: z.string().optional(),
+});
+
+// POST /api/events — Create event
+router.post("/", authenticate, requireMinRole("TECH"), validate(createEventSchema), auditLog("EVENT_CREATED"), async (req: Request, res: Response) => {
+  try {
+    const data = req.body;
+    const event = await prisma.event.create({
+      data: {
+        title: data.title, description: data.description, venue: data.venue,
+        startDate: new Date(data.startDate), endDate: new Date(data.endDate),
+        registrationDeadline: data.registrationDeadline ? new Date(data.registrationDeadline) : null,
+        rules: data.rules, tags: data.tags || [],
+        minTeamSize: data.minTeamSize, maxTeamSize: data.maxTeamSize,
+        maxCapacity: data.maxCapacity, eventType: data.eventType || "general",
+        googleFormUrl: data.googleFormUrl || null,
+        documentUrl: data.documentUrl || null,
+        slug: generateSlug(data.title), isDraft: true, isPublished: false, creatorId: req.user!.userId,
+      },
+    });
+    res.status(201).json({ event });
+  } catch (err) { console.error("[Events] Create error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
+// POST /api/events/:id/poster — Upload poster
+router.post("/:id/poster", authenticate, requireMinRole("TECH"), upload.single("poster"), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
+    const event = await prisma.event.update({ where: { id: req.params.id }, data: { posterUrl: `/uploads/${req.file.filename}` } });
+    res.json({ event });
+  } catch (err) { console.error("[Events] Poster error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
+// POST /api/events/:id/document — Upload document
+router.post("/:id/document", authenticate, requireMinRole("TECH"), upload.single("document"), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
+    const event = await prisma.event.update({ where: { id: req.params.id }, data: { documentUrl: `/uploads/${req.file.filename}` } });
+    res.json({ event });
+  } catch (err) { console.error("[Events] Document upload error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
+// GET /api/events — Public published events with search/filter
+router.get("/", async (req: Request, res: Response) => {
+  try {
+    const { search, tag, from, to } = req.query;
+    const where: any = { isPublished: true };
+    if (search) {
+      where.OR = [
+        { title: { contains: search as string, mode: "insensitive" } },
+        { description: { contains: search as string, mode: "insensitive" } },
+      ];
+    }
+    if (tag) where.tags = { has: tag as string };
+    if (from) where.startDate = { gte: new Date(from as string) };
+    if (to) where.endDate = { lte: new Date(to as string) };
+
+    const events = await prisma.event.findMany({
+      where,
+      include: { creator: { select: { id: true, name: true, role: true } }, _count: { select: { registrations: true } } },
+      orderBy: { startDate: "desc" },
+    });
+    res.json({ events });
+  } catch (err) { console.error("[Events] List error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
+// GET /api/events/all — All events for coordinators with search/filter
+router.get("/all", authenticate, requireMinRole("TECH"), async (req: Request, res: Response) => {
+  try {
+    const { search, status, tag } = req.query;
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { title: { contains: search as string, mode: "insensitive" } },
+        { description: { contains: search as string, mode: "insensitive" } },
+      ];
+    }
+    if (status === "published") where.isPublished = true;
+    else if (status === "draft") { where.isDraft = true; where.isPublished = false; }
+    if (tag) where.tags = { has: tag as string };
+
+    const events = await prisma.event.findMany({
+      where,
+      include: {
+        creator: { select: { id: true, name: true, role: true } },
+        _count: { select: { registrations: true, attendance: true, teams: true } },
+      },
+      orderBy: { startDate: "desc" },
+    });
+    res.json({ events });
+  } catch (err) { console.error("[Events] List all error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
+// GET /api/events/public/:slug — Public event detail
+router.get("/public/:slug", async (req: Request, res: Response) => {
+  try {
+    const event = await prisma.event.findUnique({
+      where: { slug: req.params.slug },
+      include: { creator: { select: { name: true, role: true } }, _count: { select: { registrations: true, teams: true } } },
+    });
+    if (!event || !event.isPublished) { res.status(404).json({ error: "Event not found" }); return; }
+    res.json({ event });
+  } catch (err) { console.error("[Events] Public error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
+// GET /api/events/:id — Event detail
+router.get("/:id", async (req: Request, res: Response) => {
+  try {
+    const event = await prisma.event.findUnique({
+      where: { id: req.params.id },
+      include: {
+        creator: { select: { id: true, name: true, role: true } },
+        _count: { select: { registrations: true, teams: true, attendance: true } },
+      },
+    });
+    if (!event) { res.status(404).json({ error: "Event not found" }); return; }
+    res.json({ event });
+  } catch (err) { console.error("[Events] Detail error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
+// GET /api/events/:id/analytics — Registration timeline, team stats, attendance
+router.get("/:id/analytics", authenticate, requireMinRole("TECH"), async (req: Request, res: Response) => {
+  try {
+    const eventId = req.params.id;
+    const event = await prisma.event.findUnique({ where: { id: eventId } });
+    if (!event) { res.status(404).json({ error: "Event not found" }); return; }
+
+    const registrations = await prisma.eventRegistration.findMany({
+      where: { eventId }, select: { createdAt: true }, orderBy: { createdAt: "asc" },
+    });
+    const timelineMap: Record<string, number> = {};
+    registrations.forEach((r) => {
+      const day = r.createdAt.toISOString().split("T")[0];
+      timelineMap[day] = (timelineMap[day] || 0) + 1;
+    });
+    const registrationTimeline = Object.entries(timelineMap).map(([date, count]) => ({ date, count }));
+
+    const teams = await prisma.team.findMany({
+      where: { eventId }, include: { _count: { select: { members: true } } },
+    });
+    const teamSizeMap: Record<number, number> = {};
+    teams.forEach((t) => { const s = t._count.members; teamSizeMap[s] = (teamSizeMap[s] || 0) + 1; });
+    const teamSizeDistribution = Object.entries(teamSizeMap).map(([size, count]) => ({ size: parseInt(size), count }));
+
+    const checkedIn = await prisma.attendance.count({ where: { eventId, type: "CHECK_IN" } });
+    const checkedOut = await prisma.attendance.count({ where: { eventId, type: "CHECK_OUT" } });
+    const lateCount = await prisma.attendance.count({ where: { eventId, type: "CHECK_IN", isLate: true } });
+
+    res.json({
+      totalRegistrations: registrations.length, totalTeams: teams.length,
+      registrationTimeline, teamSizeDistribution,
+      attendance: { checkedIn, checkedOut, lateArrivals: lateCount },
+      capacity: event.maxCapacity,
+      capacityPercent: event.maxCapacity ? Math.round((registrations.length / event.maxCapacity) * 100) : null,
+    });
+  } catch (err) { console.error("[Events] Analytics error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
+// PATCH /api/events/:id — Update event
+router.patch("/:id", authenticate, requireMinRole("TECH"), auditLog("EVENT_UPDATED"), async (req: Request, res: Response) => {
+  try {
+    const d = req.body; const u: any = {};
+    if (d.title) u.title = d.title;
+    if (d.description !== undefined) u.description = d.description;
+    if (d.venue !== undefined) u.venue = d.venue;
+    if (d.startDate) u.startDate = new Date(d.startDate);
+    if (d.endDate) u.endDate = new Date(d.endDate);
+    if (d.registrationDeadline !== undefined) u.registrationDeadline = d.registrationDeadline ? new Date(d.registrationDeadline) : null;
+    if (d.rules !== undefined) u.rules = d.rules;
+    if (d.tags) u.tags = d.tags;
+    if (d.minTeamSize !== undefined) u.minTeamSize = d.minTeamSize;
+    if (d.maxTeamSize !== undefined) u.maxTeamSize = d.maxTeamSize;
+    if (d.maxCapacity !== undefined) u.maxCapacity = d.maxCapacity;
+    if (d.eventType !== undefined) u.eventType = d.eventType;
+    if (d.googleFormUrl !== undefined) u.googleFormUrl = d.googleFormUrl || null;
+    if (d.documentUrl !== undefined) u.documentUrl = d.documentUrl || null;
+    const event = await prisma.event.update({ where: { id: req.params.id }, data: u });
+    res.json({ event });
+  } catch (err) { console.error("[Events] Update error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
+// PATCH /api/events/:id/publish — Toggle publish + send email to all members
+router.patch("/:id/publish", authenticate, requireMinRole("STUDENT_COORDINATOR"), auditLog("EVENT_PUBLISH_TOGGLED"), async (req: Request, res: Response) => {
+  try {
+    const event = await prisma.event.findUnique({
+      where: { id: req.params.id },
+      include: { creator: { select: { name: true } } },
+    });
+    if (!event) { res.status(404).json({ error: "Event not found" }); return; }
+
+    const willPublish = !event.isPublished;
+    const updated = await prisma.event.update({
+      where: { id: req.params.id },
+      data: { isPublished: willPublish, isDraft: false },
+    });
+
+    // When publishing (not unpublishing), send email to all active approved members
+    if (willPublish) {
+      // Fire and forget — don't block the response
+      (async () => {
+        try {
+          const members = await prisma.user.findMany({
+            where: { isActive: true, isApproved: true },
+            select: { id: true, email: true, name: true },
+          });
+
+          // Send in-app notifications
+          const memberIds = members.map((m) => m.id);
+          await sendBulkNotification(
+            memberIds,
+            "EVENT_REMINDER",
+            `New Event: ${event.title}`,
+            `${event.title} has been published! ${event.venue ? `Venue: ${event.venue}` : ""} — Check it out.`,
+            { eventId: event.id }
+          );
+
+          // Send email notifications
+          const recipients = members.map((m) => ({ email: m.email, name: m.name }));
+          await sendEventPublishedEmail(
+            {
+              title: event.title,
+              description: event.description,
+              venue: event.venue,
+              startDate: event.startDate,
+              endDate: event.endDate,
+              maxCapacity: event.maxCapacity,
+              rules: event.rules,
+              tags: event.tags,
+              posterUrl: event.posterUrl,
+              googleFormUrl: event.googleFormUrl,
+              documentUrl: event.documentUrl,
+              eventType: event.eventType,
+              creator: event.creator,
+            },
+            recipients
+          );
+        } catch (err) {
+          console.error("[Events] Email broadcast error:", err);
+        }
+      })();
+    }
+
+    res.json({ event: updated });
+  } catch (err) { console.error("[Events] Publish error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
+// DELETE /api/events/:id — Soft delete (archive)
+router.delete("/:id", authenticate, requireMinRole("STUDENT_COORDINATOR"), auditLog("EVENT_DELETED"), async (req: Request, res: Response) => {
+  try {
+    const event = await prisma.event.findUnique({ where: { id: req.params.id } });
+    if (!event) { res.status(404).json({ error: "Event not found" }); return; }
+    const updated = await prisma.event.update({
+      where: { id: req.params.id }, data: { isPublished: false, isDraft: true },
+    });
+    res.json({ message: "Event archived", event: updated });
+  } catch (err) { console.error("[Events] Delete error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
+// POST /api/events/:id/register — Individual registration
+router.post("/:id/register", authenticate, auditLog("EVENT_REGISTRATION"), async (req: Request, res: Response) => {
+  try {
+    const eventId = req.params.id; const userId = req.user!.userId;
+    const event = await prisma.event.findUnique({ where: { id: eventId }, include: { _count: { select: { registrations: true } } } });
+    if (!event || !event.isPublished) { res.status(404).json({ error: "Event not found or not published" }); return; }
+    if (event.registrationDeadline && new Date() > event.registrationDeadline) { res.status(400).json({ error: "Registration deadline has passed" }); return; }
+    if (event.maxCapacity && event._count.registrations >= event.maxCapacity) { res.status(400).json({ error: "Event is at full capacity" }); return; }
+    const existing = await prisma.eventRegistration.findUnique({ where: { userId_eventId: { userId, eventId } } });
+    if (existing) { res.status(409).json({ error: "Already registered" }); return; }
+    const reg = await prisma.eventRegistration.create({ data: { userId, eventId } });
+    res.status(201).json({ registration: reg });
+  } catch (err) { console.error("[Events] Register error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
+// GET /api/events/:id/registrations — List registrations with search
+router.get("/:id/registrations", authenticate, requireMinRole("TECH"), async (req: Request, res: Response) => {
+  try {
+    const { search } = req.query;
+    const where: any = { eventId: req.params.id };
+    if (search) {
+      where.user = {
+        OR: [
+          { name: { contains: search as string, mode: "insensitive" } },
+          { email: { contains: search as string, mode: "insensitive" } },
+          { studentId: { contains: search as string, mode: "insensitive" } },
+        ],
+      };
+    }
+    const regs = await prisma.eventRegistration.findMany({
+      where,
+      include: {
+        user: { select: { id: true, name: true, email: true, studentId: true, role: true, department: true } },
+        team: { select: { id: true, name: true, teamCode: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json({ registrations: regs, count: regs.length });
+  } catch (err) { console.error("[Events] Regs error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
+// GET /api/events/:id/registrations/export — CSV export
+router.get("/:id/registrations/export", authenticate, requireMinRole("TECH"), async (req: Request, res: Response) => {
+  try {
+    const regs = await prisma.eventRegistration.findMany({
+      where: { eventId: req.params.id },
+      include: {
+        user: { select: { name: true, email: true, studentId: true, department: true, role: true } },
+        team: { select: { name: true, teamCode: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    const event = await prisma.event.findUnique({ where: { id: req.params.id }, select: { title: true } });
+    const filename = `registrations_${(event?.title || "event").replace(/[^a-z0-9]/gi, "_")}.csv`;
+    const headers = ["#", "Name", "Email", "Student ID", "Department", "Role", "Team", "Team Code", "Registered At"];
+    const rows = regs.map((r, i) => [
+      i + 1, `"${r.user.name}"`, r.user.email, r.user.studentId || "",
+      r.user.department || "", r.user.role, r.team?.name || "", r.team?.teamCode || "",
+      r.createdAt.toISOString(),
+    ].join(","));
+    const csv = [headers.join(","), ...rows].join("\n");
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(csv);
+  } catch (err) { console.error("[Events] Export error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
+export default router;
