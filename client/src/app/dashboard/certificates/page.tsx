@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api, apiUpload } from "@/lib/api";
+import { api, apiUpload, SERVER_BASE_URL, API_BASE } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileCheck, Upload, Plus, Search, Download, ShieldCheck, X, FileSpreadsheet,
@@ -154,7 +154,7 @@ export default function CertificatesPage() {
   // ZIP download
   const handleDownloadZip = () => {
     if (!selectedEvent) return;
-    window.open(`http://localhost:4000/api/certificates/download-zip/${selectedEvent}`, "_blank");
+    window.open(`${API_BASE}/certificates/download-zip/${selectedEvent}`, "_blank");
   };
 
   return (
@@ -184,7 +184,7 @@ export default function CertificatesPage() {
               className="ck-card p-4 group hover:ring-2 hover:ring-red-500/30 transition-all cursor-pointer">
               <div className="h-24 rounded-lg bg-black flex items-center justify-center mb-3 overflow-hidden border border-red-900/20 group-hover:border-red-500/40 transition-colors">
                 {t.fileType === "png" || t.fileType === "jpg" ? (
-                  <img src={`http://localhost:4000${t.fileUrl}`} alt={t.name} className="w-full h-full object-cover rounded-lg opacity-60 group-hover:opacity-100 transition-opacity" />
+                  <img src={`${SERVER_BASE_URL}${t.fileUrl}`} alt={t.name} className="w-full h-full object-cover rounded-lg opacity-60 group-hover:opacity-100 transition-opacity" />
                 ) : (
                   <FileCheck className="w-8 h-8 text-red-900 group-hover:text-red-500 transition-colors" />
                 )}
@@ -420,7 +420,7 @@ export default function CertificatesPage() {
                   <td>
                     <div className="flex gap-2">
                       {c.fileUrl && (
-                        <a href={`http://localhost:4000${c.fileUrl}`} target="_blank" rel="noopener noreferrer"
+                        <a href={`${SERVER_BASE_URL}${c.fileUrl}`} target="_blank" rel="noopener noreferrer"
                           className="text-red-400 hover:text-red-300 text-[10px] flex items-center gap-1 font-mono font-bold uppercase tracking-tighter">
                           <Download className="w-3.5 h-3.5" /> DL_PDF
                         </a>

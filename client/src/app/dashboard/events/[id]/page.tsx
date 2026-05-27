@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { api } from "@/lib/api";
+import { api, API_BASE } from "@/lib/api";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Calendar, Users, MapPin, Clock, Download, ExternalLink,
@@ -82,7 +82,7 @@ export default function EventDetailPage() {
   };
 
   const handleExportCSV = () => {
-    window.open(`http://localhost:4000/api/events/${eventId}/registrations/export?token=${token}`, "_blank");
+    window.open(`${API_BASE}/events/${eventId}/registrations/export?token=${token}`, "_blank");
   };
 
   const filteredRegs = search

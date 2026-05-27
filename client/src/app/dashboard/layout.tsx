@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth, Role } from "@/lib/auth-context";
-import { api } from "@/lib/api";
+import { api, SERVER_BASE_URL } from "@/lib/api";
 import { motion } from "framer-motion";
 import {
   Shield, LayoutDashboard, Calendar, Users, Award,
@@ -120,7 +120,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="p-3 rounded-lg border border-red-900/10 bg-black/40">
           <div className="flex items-center gap-3">
             {user.avatarUrl ? (
-              <img src={`http://localhost:4000${user.avatarUrl}`} alt="Avatar" className="w-9 h-9 rounded-lg object-cover border border-red-900 shadow-[0_0_8px_rgba(220,38,38,0.3)]" />
+              <img src={`${SERVER_BASE_URL}${user.avatarUrl}`} alt="Avatar" className="w-9 h-9 rounded-lg object-cover border border-red-900 shadow-[0_0_8px_rgba(220,38,38,0.3)]" />
             ) : (
               <DefaultAvatar className="w-9 h-9 border border-red-900" />
             )}

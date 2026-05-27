@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api, apiUpload } from "@/lib/api";
+import { api, apiUpload, SERVER_BASE_URL } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { ClipboardList, CheckCircle, XCircle, Clock, Plus, X, ChevronDown, ChevronUp, Eye, MessageSquare, Paperclip, FileText, Upload } from "lucide-react";
 
@@ -168,7 +168,7 @@ export default function ApprovalsPage() {
                         <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--ck-text-muted)" }}>Attachments</p>
                         <div className="flex flex-wrap gap-2">
                           {a.metadata.attachments.map((file: any, idx: number) => (
-                            <a key={idx} href={`http://localhost:4000${file.url}`} target="_blank" rel="noopener noreferrer" 
+                            <a key={idx} href={`${SERVER_BASE_URL}${file.url}`} target="_blank" rel="noopener noreferrer" 
                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--ck-border)] hover:bg-[var(--ck-bg-secondary)] transition text-sm text-indigo-400">
                               <FileText className="w-4 h-4" /> {file.name}
                             </a>

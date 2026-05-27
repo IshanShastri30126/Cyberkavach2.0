@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api } from "@/lib/api";
+import { api, SERVER_BASE_URL } from "@/lib/api";
 import { motion } from "framer-motion";
 import { Users, Clock, UserCheck, UserMinus, AlertTriangle, QrCode, Camera } from "lucide-react";
 import { Html5QrcodeScanner, Html5Qrcode } from "html5-qrcode";
@@ -54,7 +54,7 @@ export default function AttendancePage() {
       loadAttendance(selectedEvent);
 
       // Connect socket
-      socketRef.current = io("http://localhost:4000", { auth: { token } });
+      socketRef.current = io(SERVER_BASE_URL, { auth: { token } });
       socketRef.current.emit("join-event", selectedEvent);
 
       socketRef.current.on("attendance-update", () => {

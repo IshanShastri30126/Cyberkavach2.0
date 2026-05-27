@@ -52,7 +52,20 @@ const authLimiter = rateLimit({
 app.use("/api/", apiLimiter);
 app.use("/api/auth", authLimiter);
 
-app.use(cors({ origin: config.clientUrl, credentials: true }));
+// Parse allowed origins (supports comma-separated CLIENT_URL for multiple origins)
+const allowedOrigins = config.clientUrl.split(",").map((s) => s.trim());
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS: Origin ${origin} not allowed`));
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 

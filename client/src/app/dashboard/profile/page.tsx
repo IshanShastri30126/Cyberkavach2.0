@@ -1,15 +1,33 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api } from "@/lib/api";
+import { api, API_BASE, SERVER_BASE_URL } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Star, Calendar, Award, TrendingUp, Shield, Edit2, X, Upload } from "lucide-react";
+import {
+  User,
+  Star,
+  Calendar,
+  Award,
+  TrendingUp,
+  Shield,
+  Edit2,
+  X,
+  Upload,
+  Mail,
+  Hash,
+  BookOpen,
+  Building,
+  GraduationCap,
+  Phone
+} from "lucide-react";
 import { DefaultAvatar } from "@/components/default-avatar";
 
 export default function ProfilePage() {
   const { user, token } = useAuth();
   const [history, setHistory] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [imgError, setImgError] = useState(false);
   
   // Edit Profile State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -36,13 +54,23 @@ export default function ProfilePage() {
       try {
         const data = await api<any>(`/appreciation/user/${user.id}/history`, { token });
         setHistory(data);
-      } catch (err) { console.error(err); }
-      finally { setLoading(false); }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, [token, user]);
 
-  if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-3 border-red-500/30 border-t-red-500 rounded-full animate-spin" /></div>;
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 space-y-4">
+        <div className="w-8 h-8 border-3 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
+        <p className="text-xs uppercase font-mono text-[var(--ck-text-secondary)] tracking-widest">Loading Operative Dossier...</p>
+      </div>
+    );
+  }
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +86,7 @@ export default function ProfilePage() {
       formData.append("institute", editInstitute);
       formData.append("semester", editSemester);
 
-      const res = await fetch("http://localhost:4000/api/users/profile", {
+      const res = await fetch(`${API_BASE}/users/profile`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
         body: formData
@@ -69,7 +97,6 @@ export default function ProfilePage() {
         throw new Error(errData.error || "Failed to update profile");
       }
       
-      // Reload page to reflect changes
       window.location.reload();
     } catch (err: any) {
       console.error(err);
@@ -79,118 +106,261 @@ export default function ProfilePage() {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.08 } }
+  };
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0 }
+  } as const;
+
   return (
-    <div className="max-w-3xl">
-      {/* Profile Card */}
-      <div className="ck-card p-8 mb-6 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
-          {user?.avatarUrl ? (
-            <img src={`http://localhost:4000${user.avatarUrl}`} alt="Avatar" className="w-20 h-20 rounded-xl object-cover border-2 border-[var(--ck-primary-dark)] shrink-0" />
-          ) : (
-            <DefaultAvatar className="w-20 h-20 border-2" />
-          )}
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold" style={{ color: "var(--ck-text)" }}>{user?.name}</h1>
-            <p style={{ color: "var(--ck-text-secondary)" }}>{user?.email}</p>
-            <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2 mt-2">
-              <span className="ck-badge ck-badge-primary">{user?.role?.replace(/_/g, " ")}</span>
-              {user?.studentId && <span className="ck-badge ck-badge-info">ID: {user.studentId}</span>}
-              {user?.department && <span className="ck-badge ck-badge-info">{user.department}</span>}
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Profile Header Dossier Card */}
+      <div className="ck-card p-6 sm:p-8 relative overflow-hidden bg-black/40 border-red-950/40">
+        <div className="absolute top-0 right-0 h-full w-1/3 bg-radial-gradient from-red-600/5 to-transparent pointer-events-none" />
+        
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left relative z-10">
+          <div className="relative shrink-0 group">
+            {user?.avatarUrl && !imgError ? (
+              <img
+                src={`${SERVER_BASE_URL}${user.avatarUrl}`}
+                alt="Avatar"
+                onError={() => setImgError(true)}
+                className="w-24 h-24 rounded-2xl object-cover border-2 border-red-900/60 shadow-[0_0_15px_rgba(220,38,38,0.25)]"
+              />
+            ) : (
+              <DefaultAvatar className="w-24 h-24 rounded-2xl border-2 border-zinc-800" />
+            )}
+            <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer" onClick={() => setShowEditModal(true)}>
+              <Edit2 className="w-5 h-5 text-white" />
             </div>
           </div>
-          <button onClick={() => setShowEditModal(true)} className="ck-btn-secondary p-2 hidden sm:flex self-start">
-            <Edit2 className="w-4 h-4" /> Edit Profile
+          
+          <div className="flex-1 min-w-0 space-y-1">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <h1 className="text-3xl font-extrabold tracking-tight text-white">{user?.name}</h1>
+              <span className="ck-badge ck-badge-primary self-center sm:self-start text-[9px] px-2 py-0.5">
+                {user?.role?.replace(/_/g, " ")}
+              </span>
+            </div>
+            <p className="text-sm font-mono text-[var(--ck-text-secondary)]">{user?.email}</p>
+            
+            <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2 mt-3 text-xs font-mono">
+              {user?.studentId && (
+                <span className="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-900 text-[var(--ck-text-muted)]">
+                  CLEARANCE: {user.studentId}
+                </span>
+              )}
+              {user?.department && (
+                <span className="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-900 text-[var(--ck-text-muted)]">
+                  DEPT: {user.department}
+                </span>
+              )}
+            </div>
+          </div>
+          
+          {/* Responsive single Edit Button */}
+          <button
+            onClick={() => setShowEditModal(true)}
+            className="ck-btn-secondary px-4 py-2 flex items-center gap-2 text-xs font-mono tracking-widest uppercase transition shrink-0 self-center sm:self-start"
+          >
+            <Edit2 className="w-3.5 h-3.5" /> Edit Profile
           </button>
         </div>
-        <button onClick={() => setShowEditModal(true)} className="ck-btn-secondary w-full mt-4 sm:hidden flex justify-center">
-          <Edit2 className="w-4 h-4" /> Edit Profile
-        </button>
       </div>
+
+      {/* Profile Metrics Grid */}
+      <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Metric 1 */}
+        <motion.div
+          variants={itemVariants}
+          whileHover={{ y: -4, scale: 1.01 }}
+          className="ck-card p-5 bg-gradient-to-br from-zinc-950/60 to-black border-zinc-900 hover:border-amber-500/20 transition-all duration-300 relative group overflow-hidden"
+        >
+          <div className="absolute -right-4 -bottom-4 w-12 h-12 rounded-full bg-amber-500/5 group-hover:bg-amber-500/10 transition-colors pointer-events-none" />
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 flex items-center justify-center text-amber-400 border border-amber-500/30">
+              <Star className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold font-mono text-white tracking-tighter">
+                {history?.totalPoints || 0}
+              </p>
+              <p className="text-[10px] uppercase font-mono tracking-widest text-[var(--ck-text-secondary)] font-bold">Total Points</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Metric 2 */}
+        <motion.div
+          variants={itemVariants}
+          whileHover={{ y: -4, scale: 1.01 }}
+          className="ck-card p-5 bg-gradient-to-br from-zinc-950/60 to-black border-zinc-900 hover:border-violet-500/20 transition-all duration-300 relative group overflow-hidden"
+        >
+          <div className="absolute -right-4 -bottom-4 w-12 h-12 rounded-full bg-violet-500/5 group-hover:bg-violet-500/10 transition-colors pointer-events-none" />
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500/20 to-indigo-500/10 flex items-center justify-center text-violet-400 border border-violet-500/30">
+              <Award className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold font-mono text-white tracking-tighter">
+                {history?.badges?.length || 0}
+              </p>
+              <p className="text-[10px] uppercase font-mono tracking-widest text-[var(--ck-text-secondary)] font-bold">Badges unlocked</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Metric 3 */}
+        <motion.div
+          variants={itemVariants}
+          whileHover={{ y: -4, scale: 1.01 }}
+          className="ck-card p-5 bg-gradient-to-br from-zinc-950/60 to-black border-zinc-900 hover:border-cyan-500/20 transition-all duration-300 relative group overflow-hidden"
+        >
+          <div className="absolute -right-4 -bottom-4 w-12 h-12 rounded-full bg-cyan-500/5 group-hover:bg-cyan-500/10 transition-colors pointer-events-none" />
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/10 flex items-center justify-center text-cyan-400 border border-cyan-500/30">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold font-mono text-white tracking-tighter">
+                {history?.eventParticipation || 0}
+              </p>
+              <p className="text-[10px] uppercase font-mono tracking-widest text-[var(--ck-text-secondary)] font-bold">Events Participated</p>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
 
       {/* Operative Details Grid */}
-      <div className="ck-card p-6 mb-6">
-        <h3 className="font-semibold mb-4 flex items-center gap-2 uppercase tracking-tighter" style={{ color: "var(--ck-text)" }}>
-          <User className="w-5 h-5 text-red-500" /> Operative Profile Details
+      <div className="ck-card p-6 bg-black/30 border-red-950/20">
+        <h3 className="text-sm font-bold mb-5 flex items-center gap-2 uppercase tracking-tight text-white font-mono border-b border-red-900/10 pb-3">
+          <User className="w-4 h-4 text-red-500" /> OPERATIVE_DOSSIER_DETAILS
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div className="p-3 rounded-lg border border-[var(--ck-border)] bg-black/30">
-            <p className="text-[10px] uppercase font-semibold font-mono" style={{ color: "var(--ck-text-muted)" }}>Full Name</p>
-            <p className="font-semibold mt-0.5 text-white">{user?.name}</p>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm font-mono">
+          {/* Full Name */}
+          <div className="p-3.5 rounded-xl border border-zinc-900/60 bg-zinc-950/30 flex items-center gap-4 hover:border-zinc-800 transition duration-300">
+            <div className="w-9 h-9 rounded-lg bg-zinc-900 flex items-center justify-center text-[var(--ck-text-secondary)] border border-zinc-850">
+              <User className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wider text-[var(--ck-text-muted)] font-semibold">Full Name</p>
+              <p className="font-bold mt-0.5 text-white truncate">{user?.name}</p>
+            </div>
           </div>
-          <div className="p-3 rounded-lg border border-[var(--ck-border)] bg-black/30">
-            <p className="text-[10px] uppercase font-semibold font-mono" style={{ color: "var(--ck-text-muted)" }}>College Email ID</p>
-            <p className="font-semibold mt-0.5 text-white">{user?.email}</p>
+
+          {/* Email */}
+          <div className="p-3.5 rounded-xl border border-zinc-900/60 bg-zinc-950/30 flex items-center gap-4 hover:border-zinc-800 transition duration-300">
+            <div className="w-9 h-9 rounded-lg bg-zinc-900 flex items-center justify-center text-[var(--ck-text-secondary)] border border-zinc-850">
+              <Mail className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wider text-[var(--ck-text-muted)] font-semibold">College Email</p>
+              <p className="font-bold mt-0.5 text-white truncate">{user?.email}</p>
+            </div>
           </div>
-          <div className="p-3 rounded-lg border border-[var(--ck-border)] bg-black/30">
-            <p className="text-[10px] uppercase font-semibold font-mono" style={{ color: "var(--ck-text-muted)" }}>Student ID</p>
-            <p className="font-semibold mt-0.5 text-white">{user?.studentId || "N/A"}</p>
+
+          {/* Student ID */}
+          <div className="p-3.5 rounded-xl border border-zinc-900/60 bg-zinc-950/30 flex items-center gap-4 hover:border-zinc-800 transition duration-300">
+            <div className="w-9 h-9 rounded-lg bg-zinc-900 flex items-center justify-center text-[var(--ck-text-secondary)] border border-zinc-850">
+              <Hash className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wider text-[var(--ck-text-muted)] font-semibold">Student ID</p>
+              <p className="font-bold mt-0.5 text-white truncate">{user?.studentId || "N/A"}</p>
+            </div>
           </div>
-          <div className="p-3 rounded-lg border border-[var(--ck-border)] bg-black/30">
-            <p className="text-[10px] uppercase font-semibold font-mono" style={{ color: "var(--ck-text-muted)" }}>Department</p>
-            <p className="font-semibold mt-0.5 text-white">{user?.department || "N/A"}</p>
+
+          {/* Department */}
+          <div className="p-3.5 rounded-xl border border-zinc-900/60 bg-zinc-950/30 flex items-center gap-4 hover:border-zinc-800 transition duration-300">
+            <div className="w-9 h-9 rounded-lg bg-zinc-900 flex items-center justify-center text-[var(--ck-text-secondary)] border border-zinc-850">
+              <BookOpen className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wider text-[var(--ck-text-muted)] font-semibold">Department</p>
+              <p className="font-bold mt-0.5 text-white truncate">{user?.department || "N/A"}</p>
+            </div>
           </div>
-          <div className="p-3 rounded-lg border border-[var(--ck-border)] bg-black/30">
-            <p className="text-[10px] uppercase font-semibold font-mono" style={{ color: "var(--ck-text-muted)" }}>Institute</p>
-            <p className="font-semibold mt-0.5 text-white">{user?.institute || "N/A"}</p>
+
+          {/* Institute */}
+          <div className="p-3.5 rounded-xl border border-zinc-900/60 bg-zinc-950/30 flex items-center gap-4 hover:border-zinc-800 transition duration-300">
+            <div className="w-9 h-9 rounded-lg bg-zinc-900 flex items-center justify-center text-[var(--ck-text-secondary)] border border-zinc-850">
+              <Building className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wider text-[var(--ck-text-muted)] font-semibold">Institute</p>
+              <p className="font-bold mt-0.5 text-white truncate">{user?.institute || "N/A"}</p>
+            </div>
           </div>
-          <div className="p-3 rounded-lg border border-[var(--ck-border)] bg-black/30">
-            <p className="text-[10px] uppercase font-semibold font-mono" style={{ color: "var(--ck-text-muted)" }}>Semester</p>
-            <p className="font-semibold mt-0.5 text-white">{user?.semester || "N/A"}</p>
+
+          {/* Semester */}
+          <div className="p-3.5 rounded-xl border border-zinc-900/60 bg-zinc-950/30 flex items-center gap-4 hover:border-zinc-800 transition duration-300">
+            <div className="w-9 h-9 rounded-lg bg-zinc-900 flex items-center justify-center text-[var(--ck-text-secondary)] border border-zinc-850">
+              <GraduationCap className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wider text-[var(--ck-text-muted)] font-semibold">Semester</p>
+              <p className="font-bold mt-0.5 text-white truncate">{user?.semester || "N/A"}</p>
+            </div>
           </div>
-          <div className="p-3 rounded-lg border border-[var(--ck-border)] bg-black/30 sm:col-span-2">
-            <p className="text-[10px] uppercase font-semibold font-mono" style={{ color: "var(--ck-text-muted)" }}>Contact Info / Phone</p>
-            <p className="font-semibold mt-0.5 text-white">{user?.phone || "N/A"}</p>
+
+          {/* Contact info */}
+          <div className="p-3.5 rounded-xl border border-zinc-900/60 bg-zinc-950/30 flex items-center gap-4 hover:border-zinc-800 transition duration-300 sm:col-span-2">
+            <div className="w-9 h-9 rounded-lg bg-zinc-900 flex items-center justify-center text-[var(--ck-text-secondary)] border border-zinc-850">
+              <Phone className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wider text-[var(--ck-text-muted)] font-semibold">Contact Phone</p>
+              <p className="font-bold mt-0.5 text-white truncate">{user?.phone || "N/A"}</p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="ck-card p-5 text-center">
-          <Star className="w-6 h-6 text-amber-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold" style={{ color: "var(--ck-text)" }}>{history?.totalPoints || 0}</p>
-          <p className="text-xs" style={{ color: "var(--ck-text-muted)" }}>Total Points</p>
-        </div>
-        <div className="ck-card p-5 text-center">
-          <Award className="w-6 h-6 text-indigo-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold" style={{ color: "var(--ck-text)" }}>{history?.badges?.length || 0}</p>
-          <p className="text-xs" style={{ color: "var(--ck-text-muted)" }}>Badges</p>
-        </div>
-        <div className="ck-card p-5 text-center">
-          <Calendar className="w-6 h-6 text-cyan-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold" style={{ color: "var(--ck-text)" }}>{history?.eventParticipation || 0}</p>
-          <p className="text-xs" style={{ color: "var(--ck-text-muted)" }}>Events</p>
-        </div>
-      </div>
-
-      {/* Badges */}
+      {/* Badges showcase section */}
       {history?.badges?.length > 0 && (
-        <div className="ck-card p-6 mb-6">
-          <h3 className="font-semibold mb-3 flex items-center gap-2" style={{ color: "var(--ck-text)" }}><Shield className="w-5 h-5 text-indigo-500" /> Badges Earned</h3>
+        <div className="ck-card p-6 bg-black/30 border-red-950/20">
+          <h3 className="text-sm font-bold mb-4 flex items-center gap-2 uppercase tracking-tight text-white font-mono border-b border-red-900/10 pb-3">
+            <Shield className="w-4 h-4 text-violet-500" /> BADGES_VAULT
+          </h3>
           <div className="flex flex-wrap gap-3">
             {history.badges.map((b: any) => (
-              <motion.div key={b.id} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="p-3 rounded-xl text-center" style={{ background: "var(--ck-bg-secondary)" }}>
-                <span className="text-3xl">{b.badge.icon}</span>
-                <p className="text-xs font-medium mt-1" style={{ color: "var(--ck-text)" }}>{b.badge.name}</p>
+              <motion.div
+                key={b.id}
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                whileHover={{ scale: 1.05 }}
+                className="p-3.5 rounded-xl text-center border border-zinc-900 bg-zinc-950/40 hover:border-violet-500/20 min-w-[90px] transition-all cursor-help"
+                title={b.badge.description}
+              >
+                <span className="text-3xl drop-shadow-[0_0_8px_rgba(139,92,246,0.35)]">{b.badge.icon}</span>
+                <p className="text-[10px] font-mono font-bold mt-1.5 text-[var(--ck-text-secondary)] uppercase">{b.badge.name}</p>
               </motion.div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Point History */}
+      {/* Point history list */}
       {history?.points?.length > 0 && (
-        <div className="ck-card p-6">
-          <h3 className="font-semibold mb-3 flex items-center gap-2" style={{ color: "var(--ck-text)" }}><TrendingUp className="w-5 h-5 text-emerald-500" /> Contribution History</h3>
-          <div className="space-y-2">
+        <div className="ck-card p-6 bg-black/30 border-red-950/20">
+          <h3 className="text-sm font-bold mb-4 flex items-center gap-2 uppercase tracking-tight text-white font-mono border-b border-red-900/10 pb-3">
+            <TrendingUp className="w-4 h-4 text-emerald-550" /> CONTRIBUTION_LEDGER
+          </h3>
+          <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
             {history.points.slice(0, 20).map((p: any) => (
-              <div key={p.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: "var(--ck-bg-secondary)" }}>
+              <div key={p.id} className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-900 bg-zinc-950/30 text-xs font-mono">
                 <div>
-                  <p className="text-sm font-medium" style={{ color: "var(--ck-text)" }}>{p.category}</p>
-                  {p.reason && <p className="text-xs" style={{ color: "var(--ck-text-muted)" }}>{p.reason}</p>}
-                  <p className="text-xs" style={{ color: "var(--ck-text-muted)" }}>by {p.giver?.name} · {new Date(p.createdAt).toLocaleDateString()}</p>
+                  <p className="font-bold text-white uppercase">{p.category}</p>
+                  {p.reason && <p className="text-[10px] text-[var(--ck-text-secondary)] mt-0.5">{p.reason}</p>}
+                  <p className="text-[9px] text-[var(--ck-text-muted)] mt-0.5">Approved by {p.giver?.name || "System"} · {new Date(p.createdAt).toLocaleDateString()}</p>
                 </div>
-                <span className={`text-sm font-bold ${p.points >= 0 ? "text-emerald-500" : "text-red-500"}`}>{p.points >= 0 ? "+" : ""}{p.points}</span>
+                <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded ${p.points >= 0 ? "bg-emerald-950/30 text-emerald-400 border border-emerald-900/40" : "bg-red-950/30 text-red-400 border border-red-900/40"}`}>
+                  {p.points >= 0 ? `+${p.points}` : p.points} PTS
+                </span>
               </div>
             ))}
           </div>
@@ -201,11 +371,11 @@ export default function ProfilePage() {
       <AnimatePresence>
         {showEditModal && (
           <div className="ck-modal-overlay">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="ck-card p-6 w-full max-w-lg relative">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="ck-card p-6 w-full max-w-lg relative bg-zinc-950/95 border-red-950">
               <button onClick={() => setShowEditModal(false)} className="absolute top-4 right-4 text-[var(--ck-text-muted)] hover:text-white z-20">
                 <X className="w-5 h-5" />
               </button>
-              <h2 className="text-xl font-bold text-white mb-6">Edit Profile</h2>
+              <h2 className="text-xl font-bold text-white mb-6 uppercase tracking-tight font-mono">Edit Profile Dossier</h2>
               
               <form onSubmit={handleEditSubmit} className="space-y-4 max-h-[75vh] overflow-y-auto pr-2">
                 <div>

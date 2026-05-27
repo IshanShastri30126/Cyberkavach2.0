@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Share+Tech+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Share+Tech+Mono&display=swap');
 @import "tailwindcss";
 
 /* ─── CyberKavach 2.0 Design System (Cyber Red Theme) ───────── */
@@ -47,7 +47,7 @@
 body {
   background: var(--ck-bg);
   color: var(--ck-text);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 

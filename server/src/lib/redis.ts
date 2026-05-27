@@ -1,93 +1,57 @@
-import Redis from "ioredis";
+import { Redis } from "@upstash/redis";
 import { config } from "../config";
 
 let redisAvailable = false;
+let redis: Redis | null = null;
 
-const redis = new Redis(config.redis.url, {
-  maxRetriesPerRequest: 3,
-  retryStrategy(times) {
-    if (times > 5) {
-      console.warn("[Redis] Max retries reached — giving up reconnection");
-      return null; // stop retrying
-    }
-    const delay = Math.min(times * 500, 5000); // exponential backoff, max 5s
-    console.log(`[Redis] Retry #${times} in ${delay}ms...`);
-    return delay;
-  },
-  lazyConnect: true,
-  connectTimeout: 5000,
-  commandTimeout: 3000,
-  enableOfflineQueue: false,
-});
-
-redis.on("error", (err) => {
-  if (redisAvailable) {
-    console.warn("[Redis] Connection lost:", err.message);
+// Initialize Upstash Redis (HTTP-based — no TCP connections needed)
+if (config.upstash.url && config.upstash.token) {
+  try {
+    redis = new Redis({
+      url: config.upstash.url,
+      token: config.upstash.token,
+    });
+    redisAvailable = true;
+    console.log("[Redis] ✅ Upstash Redis configured (HTTP mode)");
+  } catch (err) {
+    console.warn("[Redis] ⚠️  Failed to initialize Upstash Redis:", err);
+    redisAvailable = false;
   }
-  redisAvailable = false;
-});
+} else {
+  console.warn("[Redis] ⚠️  Upstash credentials not set — running without caching");
+}
 
-redis.on("connect", () => {
-  redisAvailable = true;
-  console.log("[Redis] ✅ Connected successfully");
-});
+// ─── Safe Wrappers (same API as before) ────────────────────
 
-redis.on("close", () => {
-  redisAvailable = false;
-});
-
-redis.on("reconnecting", () => {
-  console.log("[Redis] 🔄 Reconnecting...");
-});
-
-// Try connecting but don't crash if Redis is unavailable
-redis.connect().catch(() => {
-  redisAvailable = false;
-  console.warn("[Redis] ⚠️  Could not connect — running without caching");
-});
-
-// Periodic reconnection attempt if Redis is down
-setInterval(async () => {
-  if (!redisAvailable) {
-    try {
-      await redis.ping();
-      redisAvailable = true;
-      console.log("[Redis] ✅ Reconnected via periodic check");
-    } catch {
-      // still unavailable, silent
-    }
-  }
-}, 30000); // every 30 seconds
-
-// Safe wrappers that won't hang
 export async function redisSet(key: string, value: string, ttl?: number): Promise<void> {
-  if (!redisAvailable) return;
+  if (!redisAvailable || !redis) return;
   try {
     if (ttl) {
-      await redis.set(key, value, "EX", ttl);
+      await redis.set(key, value, { ex: ttl });
     } else {
       await redis.set(key, value);
     }
-  } catch {
-    // silently fail
+  } catch (err) {
+    console.warn("[Redis] SET failed:", err);
   }
 }
 
 export async function redisGet(key: string): Promise<string | null> {
-  if (!redisAvailable) return null;
+  if (!redisAvailable || !redis) return null;
   try {
-    return await redis.get(key);
-  } catch {
+    return await redis.get<string>(key);
+  } catch (err) {
+    console.warn("[Redis] GET failed:", err);
     return null;
   }
 }
 
 export async function redisDel(key: string): Promise<void> {
-  if (!redisAvailable) return;
+  if (!redisAvailable || !redis) return;
   try {
     await redis.del(key);
-  } catch {
-    // silently fail
+  } catch (err) {
+    console.warn("[Redis] DEL failed:", err);
   }
 }
 
