@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, SERVER_BASE_URL } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { motion } from "framer-motion";
 import { Calendar, MapPin, Clock, Users, Tag, Shield, AlertCircle, CheckCircle, UserPlus } from "lucide-react";
@@ -109,7 +109,7 @@ export default function PublicEventPage() {
         
         {/* Event Poster or Default Banner */}
         <img 
-          src={event.posterUrl ? `http://localhost:4000${event.posterUrl}` : "/images/cyber_banner.png"} 
+          src={event.posterUrl ? `${SERVER_BASE_URL}${event.posterUrl}` : "/images/cyber_banner.png"} 
           alt={event.title}
           className="absolute inset-0 w-full h-full object-cover opacity-40 z-0" 
         />

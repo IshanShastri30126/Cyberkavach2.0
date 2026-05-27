@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api } from "@/lib/api";
+import { api, SERVER_BASE_URL } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { Award, Trophy, Medal, Star, Search, Plus, Minus, Settings, X, Search as SearchIcon } from "lucide-react";
 import { DefaultAvatar } from "@/components/default-avatar";
@@ -298,7 +298,7 @@ export default function LeaderboardPage() {
                     <td>
                       <div className="flex items-center gap-3">
                         {entry.user?.avatarUrl ? (
-                          <img src={`http://localhost:4000${entry.user.avatarUrl}`} alt="Avatar" className="w-8 h-8 rounded-lg object-cover border border-red-500/20 shrink-0" />
+                          <img src={`${SERVER_BASE_URL}${entry.user.avatarUrl}`} alt="Avatar" className="w-8 h-8 rounded-lg object-cover border border-red-500/20 shrink-0" />
                         ) : (
                           <DefaultAvatar className="w-8 h-8" />
                         )}

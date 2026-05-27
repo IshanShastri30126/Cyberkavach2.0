@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api, apiUpload } from "@/lib/api";
+import { api, apiUpload, SERVER_BASE_URL } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -321,7 +321,7 @@ export default function EventsPage() {
       documentUrl: event.documentUrl || "",
       posterUrl: event.posterUrl || "",
     });
-    setPosterPreview(event.posterUrl ? `http://localhost:4000${event.posterUrl}` : null);
+    setPosterPreview(event.posterUrl ? `${SERVER_BASE_URL}${event.posterUrl}` : null);
     setPosterFile(null);
     setDocumentFile(null);
     setStep(1);
@@ -951,7 +951,7 @@ export default function EventsPage() {
               {/* Poster/Header */}
               <div className="h-36 bg-gradient-to-br from-red-900/10 to-black flex items-center justify-center relative overflow-hidden">
                 {event.posterUrl ? (
-                  <img src={`http://localhost:4000${event.posterUrl}`} alt={event.title} className="w-full h-full object-cover" />
+                  <img src={`${SERVER_BASE_URL}${event.posterUrl}`} alt={event.title} className="w-full h-full object-cover" />
                 ) : (
                   <Calendar className="w-12 h-12 text-red-900 opacity-20" />
                 )}

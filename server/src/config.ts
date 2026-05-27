@@ -10,8 +10,9 @@ export const config = {
     expiry: process.env.JWT_EXPIRY || "15m",
     refreshExpiry: process.env.JWT_REFRESH_EXPIRY || "7d",
   },
-  redis: {
-    url: process.env.REDIS_URL || "redis://localhost:6379",
+  upstash: {
+    url: process.env.UPSTASH_REDIS_REST_URL || "",
+    token: process.env.UPSTASH_REDIS_REST_TOKEN || "",
   },
   smtp: {
     host: process.env.SMTP_HOST || "smtp.gmail.com",

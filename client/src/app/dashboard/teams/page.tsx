@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api } from "@/lib/api";
+import { api, API_BASE } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { UsersRound, Plus, X, QrCode, Search, Calendar, Download, RefreshCw, Crown, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -82,7 +82,7 @@ export default function TeamsPage() {
 
   const downloadQR = async (teamId: string, teamCode: string) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/teams/${teamId}/qr`, {
+      const res = await fetch(`${API_BASE}/teams/${teamId}/qr`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Download failed");
