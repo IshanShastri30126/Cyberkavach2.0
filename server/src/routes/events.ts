@@ -20,15 +20,15 @@ const createEventSchema = z.object({
   venue: z.string().optional(),
   startDate: z.string(),
   endDate: z.string(),
-  registrationDeadline: z.string().optional(),
-  rules: z.string().optional(),
+  registrationDeadline: z.string().nullable().optional(),
+  rules: z.string().nullable().optional(),
   tags: z.array(z.string()).optional(),
-  minTeamSize: z.number().int().positive().optional(),
-  maxTeamSize: z.number().int().positive().optional(),
-  maxCapacity: z.number().int().positive().optional(),
+  minTeamSize: z.number().int().positive().nullable().optional(),
+  maxTeamSize: z.number().int().positive().nullable().optional(),
+  maxCapacity: z.number().int().positive().nullable().optional(),
   eventType: z.string().optional(),
-  googleFormUrl: z.string().url().optional().or(z.literal("")),
-  documentUrl: z.string().optional(),
+  googleFormUrl: z.string().url().nullable().optional().or(z.literal("")),
+  documentUrl: z.string().nullable().optional(),
 });
 
 // POST /api/events — Create event

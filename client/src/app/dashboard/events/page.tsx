@@ -260,15 +260,15 @@ export default function EventsPage() {
         title: form.title, description: form.description || undefined,
         venue: form.venue || undefined,
         startDate: form.startDate, endDate: form.endDate,
-        maxCapacity: form.maxCapacity ? parseInt(form.maxCapacity) : null,
+        maxCapacity: form.maxCapacity ? parseInt(form.maxCapacity) : undefined,
         eventType: form.eventType,
         tags: tagList,
-        registrationDeadline: form.registrationDeadline || null,
-        minTeamSize: form.minTeamSize ? parseInt(form.minTeamSize) : null,
-        maxTeamSize: form.maxTeamSize ? parseInt(form.maxTeamSize) : null,
-        rules: form.rules || null,
-        googleFormUrl: form.googleFormUrl || null,
-        documentUrl: form.documentUrl || null,
+        registrationDeadline: form.registrationDeadline || undefined,
+        minTeamSize: form.minTeamSize ? parseInt(form.minTeamSize) : undefined,
+        maxTeamSize: form.maxTeamSize ? parseInt(form.maxTeamSize) : undefined,
+        rules: form.rules || undefined,
+        googleFormUrl: form.googleFormUrl || undefined,
+        documentUrl: form.documentUrl || undefined,
       };
 
       let eventId = editingEventId;
