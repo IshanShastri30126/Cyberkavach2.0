@@ -21,6 +21,7 @@ import analyticsRoutes from "./routes/analytics";
 import notificationRoutes from "./routes/notifications";
 
 const app = express();
+app.set("trust proxy", 1);
 const httpServer = createServer(app);
 
 // Initialize Socket.io
@@ -59,7 +60,7 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, Postman, server-to-server)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
+    if (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
       return callback(null, true);
     }
     callback(new Error(`CORS: Origin ${origin} not allowed`));
