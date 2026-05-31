@@ -94,6 +94,12 @@ const URLImage = ({ node, isSelected, onSelect, onChange, themeColor, isCropping
   // Temporary state for cropping UI
   const [tempCrop, setTempCrop] = useState(node.crop || { x: 0, y: 0, width: node.width || 100, height: node.height || 100 });
 
+  useEffect(() => {
+    if (isSelected && isCropping) {
+      onCropEnd(tempCrop);
+    }
+  }, [tempCrop, onCropEnd, isSelected, isCropping]);
+
   return (
     <React.Fragment>
       <Group
@@ -182,15 +188,6 @@ const URLImage = ({ node, isSelected, onSelect, onChange, themeColor, isCropping
             return newBox;
           }}
         />
-      )}
-      
-      {isSelected && isCropping && (
-         // We'll let the parent handle the actual confirm button, we just sync tempCrop to parent
-         // We can do this via an effect if needed, but easier if parent passes a ref or we just call onCropEnd on unmount/blur.
-         // Actually, let's update a ref in the parent or use an effect.
-         useEffect(() => {
-           onCropEnd(tempCrop);
-         }, [tempCrop, onCropEnd])
       )}
     </React.Fragment>
   );
