@@ -3,13 +3,14 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { api, apiUpload, SERVER_BASE_URL, API_BASE } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import {
   FileCheck, Upload, Plus, Search, Download, ShieldCheck, X, FileSpreadsheet,
-  Users, AlertCircle, CheckCircle, Archive
+  Users, AlertCircle, CheckCircle, Archive, Trash2, Eye, Palette
 } from "lucide-react";
 
 interface Template { id: string; name: string; fileUrl: string; fileType: string; createdBy?: { name: string }; createdAt: string; }
-interface Certificate { id: string; uniqueCode: string; recipientName: string; recipientEmail?: string; status: string; generatedAt?: string; fileUrl?: string; }
+interface Certificate { id: string; uniqueCode: string; recipientName: string; recipientEmail?: string; status: string; generatedAt?: string; createdAt?: string; fileUrl?: string; }
 interface ImportedRecipient { row?: number; name: string; email?: string; valid: boolean; errors: string[]; }
 
 export default function CertificatesPage() {
@@ -18,6 +19,10 @@ export default function CertificatesPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [certs, setCerts] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Search/Sort States for Certificates
+  const [certSearchQuery, setCertSearchQuery] = useState("");
+  const [certSortBy, setCertSortBy] = useState<"date" | "name">("date");
 
   // Modal states
   const [showGenerate, setShowGenerate] = useState(false);
@@ -156,6 +161,30 @@ export default function CertificatesPage() {
     if (!selectedEvent) return;
     window.open(`${API_BASE}/certificates/download-zip/${selectedEvent}`, "_blank");
   };
+  
+  const handleDeleteTemplate = async (templateId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to delete this template?")) return;
+    try {
+      await api(`/certificates/templates/${templateId}`, { method: "DELETE", token: token || undefined });
+      alert("Template deleted successfully!");
+      const t = await api<{ templates: Template[] }>("/certificates/templates", { token: token || undefined });
+      setTemplates(t.templates);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Delete failed");
+    }
+  };
+
+  const handleDeleteCert = async (certId: string) => {
+    if (!confirm("Are you sure you want to delete this certificate? This will remove it permanently.")) return;
+    try {
+      await api(`/certificates/${certId}`, { method: "DELETE", token: token || undefined });
+      alert("Certificate deleted successfully!");
+      if (selectedEvent) loadCerts(selectedEvent);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Delete failed");
+    }
+  };
 
   return (
     <div>
@@ -165,8 +194,11 @@ export default function CertificatesPage() {
           <p className="mt-1" style={{ color: "var(--ck-text-secondary)" }}>SECURE_TEMPLATE_VAULT // BULK_ISSUANCE_UNIT</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setShowUpload(true)} className="ck-btn-secondary"><Upload className="w-4 h-4" /> LOAD_TEMPLATE</button>
-          <button onClick={() => setShowGenerate(true)} className="ck-btn-primary"><Plus className="w-4 h-4" /> EXEC_GENERATE</button>
+          <Link href="/dashboard/certificates/builder" className="ck-btn-secondary flex items-center gap-1.5">
+            <Palette className="w-4 h-4" /> DESIGN_TEMPLATE
+          </Link>
+          <button onClick={() => setShowUpload(true)} className="ck-btn-secondary flex items-center gap-1.5"><Upload className="w-4 h-4" /> LOAD_TEMPLATE</button>
+          <button onClick={() => setShowGenerate(true)} className="ck-btn-primary flex items-center gap-1.5"><Plus className="w-4 h-4" /> EXEC_GENERATE</button>
         </div>
       </div>
 
@@ -181,7 +213,14 @@ export default function CertificatesPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {templates.map((t, i) => (
             <motion.div key={t.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-              className="ck-card p-4 group hover:ring-2 hover:ring-red-500/30 transition-all cursor-pointer">
+              className="ck-card p-4 group hover:ring-2 hover:ring-red-500/30 transition-all cursor-pointer relative">
+              <button 
+                onClick={(e) => handleDeleteTemplate(t.id, e)} 
+                className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/85 text-red-500 hover:text-white hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity z-10 border border-zinc-800"
+                title="Delete Template"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
               <div className="h-24 rounded-lg bg-black flex items-center justify-center mb-3 overflow-hidden border border-red-900/20 group-hover:border-red-500/40 transition-colors">
                 {t.fileType === "png" || t.fileType === "jpg" ? (
                   <img src={`${SERVER_BASE_URL}${t.fileUrl}`} alt={t.name} className="w-full h-full object-cover rounded-lg opacity-60 group-hover:opacity-100 transition-opacity" />
@@ -397,20 +436,57 @@ export default function CertificatesPage() {
           </button>
         )}
       </div>
-      <div className="mb-4">
-        <label className="ck-label">Filter by Event</label>
-        <select className="ck-input max-w-md" value={selectedEvent} onChange={(e) => setSelectedEvent(e.target.value)}>
-          <option value="">Select event...</option>
-          {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.title}</option>)}
-        </select>
+      <div className="flex flex-col sm:flex-row gap-3 mb-4 bg-black/20 p-3 rounded-xl border border-[var(--ck-border)] items-center">
+        <div className="w-full sm:w-auto">
+          <select className="ck-input w-full" value={selectedEvent} onChange={(e) => setSelectedEvent(e.target.value)}>
+            <option value="">Select event to load certificates...</option>
+            {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.title}</option>)}
+          </select>
+        </div>
+        
+        {certs.length > 0 && (
+          <>
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input 
+                className="ck-input pl-9 w-full bg-zinc-900 border-zinc-800 text-sm py-2" 
+                placeholder="Search by name, email, or ID..." 
+                value={certSearchQuery}
+                onChange={(e) => setCertSearchQuery(e.target.value)}
+              />
+            </div>
+            <select 
+              className="ck-input bg-zinc-900 border-zinc-800 text-sm py-2 w-full sm:w-auto"
+              value={certSortBy}
+              onChange={(e) => setCertSortBy(e.target.value as any)}
+            >
+              <option value="date">Newest First</option>
+              <option value="name">Alphabetical (A-Z)</option>
+            </select>
+          </>
+        )}
       </div>
 
       {certs.length > 0 && (
-        <div className="ck-card overflow-hidden overflow-x-auto">
-          <table className="ck-table">
+        <div className="ck-card overflow-hidden">
+          <div className="overflow-x-auto w-full">
+            <table className="ck-table whitespace-nowrap">
             <thead><tr><th>Recipient</th><th>Email</th><th>Certificate ID</th><th>Status</th><th>Generated</th><th>Actions</th></tr></thead>
             <tbody>
-              {certs.map((c) => (
+              {certs
+                .filter(c => 
+                  c.recipientName.toLowerCase().includes(certSearchQuery.toLowerCase()) || 
+                  (c.recipientEmail && c.recipientEmail.toLowerCase().includes(certSearchQuery.toLowerCase())) ||
+                  c.uniqueCode.toLowerCase().includes(certSearchQuery.toLowerCase())
+                )
+                .sort((a, b) => {
+                  if (certSortBy === "name") return a.recipientName.localeCompare(b.recipientName);
+                  if (certSortBy === "date") {
+                    return new Date(b.generatedAt || b.createdAt || 0).getTime() - new Date(a.generatedAt || a.createdAt || 0).getTime();
+                  }
+                  return 0;
+                })
+                .map((c) => (
                 <tr key={c.id} className="group hover:bg-red-500/[0.02]">
                   <td className="text-sm font-medium text-white">{c.recipientName}</td>
                   <td className="text-[10px] font-mono" style={{ color: "var(--ck-text-muted)" }}>{c.recipientEmail?.toUpperCase() || "—"}</td>
@@ -418,23 +494,34 @@ export default function CertificatesPage() {
                   <td><span className={`ck-badge ${c.status === "GENERATED" ? "ck-badge-success" : "ck-badge-warning"} text-[10px]`}>{c.status}</span></td>
                   <td className="text-[10px] font-mono" style={{ color: "var(--ck-text-muted)" }}>{c.generatedAt ? new Date(c.generatedAt).toLocaleString().toUpperCase() : "—"}</td>
                   <td>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2.5">
                       {c.fileUrl && (
-                        <a href={`${SERVER_BASE_URL}${c.fileUrl}`} target="_blank" rel="noopener noreferrer"
-                          className="text-red-400 hover:text-red-300 text-[10px] flex items-center gap-1 font-mono font-bold uppercase tracking-tighter">
-                          <Download className="w-3.5 h-3.5" /> DL_PDF
-                        </a>
+                        <>
+                          <a href={`${SERVER_BASE_URL}${c.fileUrl}`} target="_blank" rel="noopener noreferrer"
+                            className="text-indigo-400 hover:text-indigo-300 text-[10px] flex items-center gap-1 font-mono font-bold uppercase tracking-tighter">
+                            <Eye className="w-3.5 h-3.5" /> View
+                          </a>
+                          <a href={`${SERVER_BASE_URL}${c.fileUrl}`} download target="_blank" rel="noopener noreferrer"
+                            className="text-red-400 hover:text-red-300 text-[10px] flex items-center gap-1 font-mono font-bold uppercase tracking-tighter">
+                            <Download className="w-3.5 h-3.5" /> DL_PDF
+                          </a>
+                        </>
                       )}
                       <a href={`/verify/${c.uniqueCode}`} target="_blank"
                           className="text-red-900 hover:text-red-500 text-[10px] flex items-center gap-1 font-mono font-bold uppercase tracking-tighter">
                         <ShieldCheck className="w-3.5 h-3.5" /> VERIFY_CORE
                       </a>
+                      <button onClick={() => handleDeleteCert(c.id)}
+                          className="text-rose-500 hover:text-rose-400 text-[10px] flex items-center gap-1 font-mono font-bold uppercase tracking-tighter transition-colors">
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                      </button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       )}
     </div>

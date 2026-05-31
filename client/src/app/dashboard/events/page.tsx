@@ -9,7 +9,7 @@ import {
   Calendar, Plus, X, ExternalLink, Users, MapPin, Clock, Eye, EyeOff,
   Search, Upload, ChevronRight, ChevronLeft, Image, FileText,
   Link2, BookOpen, UserPlus, Info, CheckCircle2, ChevronDown,
-  Terminal, Award, Presentation, AlertTriangle, Check, UploadCloud, Layers, Edit
+  Terminal, Award, Presentation, AlertTriangle, Check, UploadCloud, Layers, Edit, Mail
 } from "lucide-react";
 
 // ─── Mini Calendar Component ────────────────────────────────
@@ -125,6 +125,7 @@ interface Event {
   slug: string; isPublished: boolean; isDraft: boolean; maxCapacity?: number; tags: string[]; eventType: string;
   posterUrl?: string; registrationDeadline?: string; minTeamSize?: number; maxTeamSize?: number;
   documentUrl?: string; rules?: string; googleFormUrl?: string;
+  isApproved: boolean;
   creator: { id: string; name: string; role: string };
   _count: { registrations: number; teams?: number; attendance?: number };
 }
@@ -159,7 +160,8 @@ export default function EventsPage() {
   const [direction, setDirection] = useState(1); // 1 = forward, -1 = backward
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
 
-  const isCoord = user && ["FACULTY", "STUDENT_COORDINATOR", "TECH"].includes(user.role);
+  const isCoord = user && ["FACULTY", "STUDENT_COORDINATOR"].includes(user.role);
+  const isCore = user && ["FACULTY", "STUDENT_COORDINATOR", "TECH", "CONTENT", "SOCIAL_MEDIA"].includes(user.role);
 
   const [form, setForm] = useState({
     title: "", description: "", venue: "", startDate: "", endDate: "",
@@ -179,7 +181,7 @@ export default function EventsPage() {
 
   const load = async () => {
     try {
-      const endpoint = isCoord ? "/events/all" : "/events";
+      const endpoint = isCore ? "/events/all" : "/events";
       const params = new URLSearchParams();
       if (searchQuery) params.set("search", searchQuery);
       if (isCoord && statusFilter !== "all") params.set("status", statusFilter);
@@ -334,6 +336,38 @@ export default function EventsPage() {
       await api(`/events/${id}/publish`, { method: "PATCH", token: token || undefined });
       load();
     } catch (err) { alert(err instanceof Error ? err.message : "Failed"); }
+  };
+
+  const handleApproveDirectly = async (eventId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const data = await api<{ requests: any[] }>("/approvals?type=EVENT_PERMISSION", { token: token || undefined });
+      const pendingRequest = data.requests?.find(r => r.status === "PENDING" && r.metadata?.eventId === eventId);
+      if (pendingRequest) {
+        await api(`/approvals/${pendingRequest.id}/decide`, {
+          method: "POST",
+          token: token || undefined,
+          body: JSON.stringify({ status: "APPROVED", comment: "Approved directly from event card." })
+        });
+        alert("Event approved successfully!");
+        load();
+      } else {
+        alert("No pending approval request found for this event.");
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Approval failed");
+    }
+  };
+
+  const handleSendEmail = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to broadcast this event via email to all club members?")) return;
+    try {
+      await api(`/events/${id}/send-email`, { method: "POST", token: token || undefined });
+      alert("Email notifications sent successfully!");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to send emails");
+    }
   };
 
   const handleRegister = async (id: string, e: React.MouseEvent) => {
@@ -946,8 +980,8 @@ export default function EventsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredEvents.map((event, i) => (
             <motion.div key={event.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-              onClick={() => isCoord ? router.push(`/dashboard/events/${event.id}`) : undefined}
-              className={`ck-card overflow-hidden ${isCoord ? "cursor-pointer hover:ring-2 hover:ring-indigo-500/30" : ""} transition-all`}>
+              onClick={() => isCore ? router.push(`/dashboard/events/${event.id}`) : undefined}
+              className={`ck-card overflow-hidden ${isCore ? "cursor-pointer hover:ring-2 hover:ring-indigo-500/30" : ""} transition-all`}>
               {/* Poster/Header */}
               <div className="h-36 bg-gradient-to-br from-red-900/10 to-black flex items-center justify-center relative overflow-hidden">
                 {event.posterUrl ? (
@@ -955,8 +989,14 @@ export default function EventsPage() {
                 ) : (
                   <Calendar className="w-12 h-12 text-red-900 opacity-20" />
                 )}
-                <div className="absolute top-3 right-3 flex gap-1">
-                  {event.isPublished ? <span className="ck-badge ck-badge-success">Published</span> : <span className="ck-badge ck-badge-warning">Draft</span>}
+                <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
+                  {!event.isApproved && (
+                    <span className="ck-badge bg-amber-600/80 border-amber-500 text-white shadow-[0_0_8px_rgba(245,158,11,0.5)]">
+                      Awaiting Approval
+                    </span>
+                  )}
+                  {event.isApproved && event.isPublished && <span className="ck-badge ck-badge-success">Published</span>}
+                  {event.isApproved && !event.isPublished && <span className="ck-badge ck-badge-warning">Draft</span>}
                 </div>
                 {/* Capacity mini-bar */}
                 {event.maxCapacity && (
@@ -989,13 +1029,35 @@ export default function EventsPage() {
                     {event.tags.map((tag) => <span key={tag} className="ck-badge ck-badge-info text-[10px]">{tag}</span>)}
                   </div>
                 )}
-                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
                   {event.isPublished && (
                     <button onClick={(e) => handleRegister(event.id, e)} className="ck-btn-primary flex-1 text-xs py-2">Register</button>
                   )}
                   {isCoord && user && ["FACULTY", "STUDENT_COORDINATOR"].includes(user.role) && (
-                    <button onClick={(e) => handlePublish(event.id, e)} className="ck-btn-secondary text-xs py-2">
+                    <button 
+                      onClick={(e) => handlePublish(event.id, e)} 
+                      disabled={user.role === "STUDENT_COORDINATOR" && !event.isApproved}
+                      className="ck-btn-secondary text-xs py-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                      title={user.role === "STUDENT_COORDINATOR" && !event.isApproved ? "Requires Faculty Approval" : ""}
+                    >
                       {event.isPublished ? <><EyeOff className="w-3 h-3" /> Unpublish</> : <><Eye className="w-3 h-3" /> Publish</>}
+                    </button>
+                  )}
+                  {user && user.role === "FACULTY" && !event.isApproved && (
+                    <button 
+                      onClick={(e) => handleApproveDirectly(event.id, e)} 
+                      className="ck-btn-primary text-xs py-2 bg-emerald-600 hover:bg-emerald-700 shadow-[0_0_10px_rgba(16,185,129,0.4)]"
+                    >
+                      Approve
+                    </button>
+                  )}
+                  {isCoord && event.isApproved && event.isPublished && (
+                    <button 
+                      onClick={(e) => handleSendEmail(event.id, e)} 
+                      className="ck-btn-secondary text-xs py-2 hover:bg-red-950/40 hover:text-red-400"
+                      title="Send Email Broadcast"
+                    >
+                      <Mail className="w-3.5 h-3.5" />
                     </button>
                   )}
                   {isCoord && (
@@ -1009,7 +1071,7 @@ export default function EventsPage() {
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   )}
-                  {isCoord && (
+                  {isCore && (
                     <button onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/events/${event.id}`); }}
                       className="ck-btn-secondary text-xs py-2">
                       <ChevronRight className="w-3 h-3" />

@@ -237,7 +237,7 @@ export default function ProfilePage() {
       {/* Operative Details Grid */}
       <div className="ck-card p-6 bg-black/30 border-red-950/20">
         <h3 className="text-sm font-bold mb-5 flex items-center gap-2 uppercase tracking-tight text-white font-mono border-b border-red-900/10 pb-3">
-          <User className="w-4 h-4 text-red-500" /> OPERATIVE_DOSSIER_DETAILS
+          <User className="w-4 h-4 text-red-500" /> OPERATIVE DOSSIER DETAILS
         </h3>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm font-mono">
@@ -324,7 +324,7 @@ export default function ProfilePage() {
       {history?.badges?.length > 0 && (
         <div className="ck-card p-6 bg-black/30 border-red-950/20">
           <h3 className="text-sm font-bold mb-4 flex items-center gap-2 uppercase tracking-tight text-white font-mono border-b border-red-900/10 pb-3">
-            <Shield className="w-4 h-4 text-violet-500" /> BADGES_VAULT
+            <Shield className="w-4 h-4 text-violet-500" /> BADGES VAULT
           </h3>
           <div className="flex flex-wrap gap-3">
             {history.badges.map((b: any) => (
@@ -348,7 +348,7 @@ export default function ProfilePage() {
       {history?.points?.length > 0 && (
         <div className="ck-card p-6 bg-black/30 border-red-950/20">
           <h3 className="text-sm font-bold mb-4 flex items-center gap-2 uppercase tracking-tight text-white font-mono border-b border-red-900/10 pb-3">
-            <TrendingUp className="w-4 h-4 text-emerald-550" /> CONTRIBUTION_LEDGER
+            <TrendingUp className="w-4 h-4 text-emerald-550" /> CONTRIBUTION LEDGER
           </h3>
           <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
             {history.points.slice(0, 20).map((p: any) => (

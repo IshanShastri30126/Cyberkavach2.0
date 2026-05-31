@@ -84,8 +84,8 @@ export default function UsersPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold font-mono tracking-tighter uppercase" style={{ color: "var(--ck-text)" }}>OPERATIVE_BASE</h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--ck-text-secondary)" }}>ACCESS_CONTROL // IDENTITY_MANAGEMENT</p>
+          <h1 className="text-3xl font-bold font-mono tracking-tighter uppercase" style={{ color: "var(--ck-text)" }}>OPERATIVE BASE</h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--ck-text-secondary)" }}>ACCESS CONTROL // IDENTITY MANAGEMENT</p>
         </div>
       </div>
 
@@ -94,7 +94,7 @@ export default function UsersPage() {
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="ck-card p-5 mb-6 border-l-4 border-red-500 relative overflow-hidden bg-red-950/20">
           <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-3xl pointer-events-none" />
           <h3 className="font-semibold mb-3 flex items-center gap-2 uppercase font-mono tracking-tighter text-red-500 text-sm">
-            <UserCheck className="w-5 h-5" /> {pendingUsers.length} PENDING_AUTHORIZATION
+            <UserCheck className="w-5 h-5" /> {pendingUsers.length} PENDING AUTHORIZATION
           </h3>
           <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
             {pendingUsers.map((u) => (
@@ -109,7 +109,7 @@ export default function UsersPage() {
                   </p>
                 </div>
                 <button onClick={() => handleApprove(u.id)} className="ck-btn-primary text-[10px] py-1.5 px-3.5 font-mono">
-                  GRANT_ACCESS
+                  GRANT ACCESS
                 </button>
               </div>
             ))}
@@ -121,7 +121,7 @@ export default function UsersPage() {
       <div className="flex flex-wrap gap-3 items-center mb-6">
         <div className="relative flex-1 max-w-sm ck-search-container ck-input-icon-wrapper">
           <Search className="w-4 h-4 text-red-500/50" />
-          <input className="ck-input ck-search-input" placeholder="SEARCH_BY_IDENTITY..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className="ck-input ck-search-input" placeholder="SEARCH BY IDENTITY..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <select className="ck-input w-auto text-xs py-2 font-mono" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
           <option value="">ALL ROLES</option>
@@ -140,9 +140,10 @@ export default function UsersPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="ck-card overflow-hidden overflow-x-auto border border-zinc-800">
-            <table className="ck-table">
-              <thead>
+          <div className="ck-card border border-zinc-800">
+            <div className="overflow-x-auto w-full">
+              <table className="ck-table whitespace-nowrap">
+                <thead>
                 <tr>
                   <th>Profile & ID</th>
                   <th>Contact Details</th>
@@ -239,6 +240,7 @@ export default function UsersPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* Pagination Controls */}

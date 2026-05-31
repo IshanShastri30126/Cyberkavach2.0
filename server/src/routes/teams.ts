@@ -258,4 +258,72 @@ router.patch("/:id", authenticate, auditLog("TEAM_UPDATED"), async (req: Request
   } catch (err) { console.error("[Teams] Update error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
 
+// POST /api/teams/join — Join a team using team code
+router.post("/join", authenticate, async (req: Request, res: Response) => {
+  try {
+    const { teamCode } = req.body;
+    const userId = req.user!.userId;
+    if (!teamCode) { res.status(400).json({ error: "Team code is required" }); return; }
+
+    const team = await prisma.team.findUnique({
+      where: { teamCode },
+      include: { 
+        event: true, 
+        members: true,
+        _count: { select: { members: true } } 
+      }
+    });
+    if (!team) { res.status(404).json({ error: "Team not found" }); return; }
+
+    // Check if team is full
+    const event = team.event;
+    if (event.maxTeamSize && team._count.members >= event.maxTeamSize) {
+      res.status(400).json({ error: `Team is already full (max ${event.maxTeamSize} members)` }); return;
+    }
+
+    // Check if user is already registered for this event
+    const existingReg = await prisma.eventRegistration.findUnique({
+      where: { userId_eventId: { userId, eventId: team.eventId } }
+    });
+    if (existingReg && existingReg.teamId) {
+      res.status(400).json({ error: "You are already registered in a team for this event" }); return;
+    }
+
+    // Check if user is already in this team
+    const isAlreadyMember = team.members.some(m => m.userId === userId);
+    if (!isAlreadyMember) {
+      // Add to team members
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId }
+      });
+    }
+
+    // Create or update registration
+    const reg = await prisma.eventRegistration.upsert({
+      where: { userId_eventId: { userId, eventId: team.eventId } },
+      create: { userId, eventId: team.eventId, teamId: team.id },
+      update: { teamId: team.id }
+    });
+
+    // Send confirmation email
+    const userObj = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true }
+    });
+    if (userObj) {
+      const { sendEventRegistrationEmail } = require("../lib/emailService");
+      sendEventRegistrationEmail(userObj, {
+        title: event.title,
+        startDate: event.startDate,
+        venue: event.venue
+      }).catch((err: any) => console.error("[Teams] Event registration email failed:", err));
+    }
+
+    res.json({ message: "Joined team successfully", team });
+  } catch (err) {
+    console.error("[Teams] Join error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

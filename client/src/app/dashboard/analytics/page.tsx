@@ -32,8 +32,8 @@ export default function AnalyticsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold font-mono tracking-tighter" style={{ color: "var(--ck-text)" }}>ANALYTICS_MODULE</h1>
-        <p className="mt-1" style={{ color: "var(--ck-text-secondary)" }}>SYSTEM_PERFORMANCE // OPERATIONAL_INSIGHTS</p>
+        <h1 className="text-3xl font-bold font-mono tracking-tighter" style={{ color: "var(--ck-text)" }}>ANALYTICS MODULE</h1>
+        <p className="mt-1" style={{ color: "var(--ck-text-secondary)" }}>SYSTEM PERFORMANCE // OPERATIONAL INSIGHTS</p>
       </div>
 
       {clubData?.overview && (
@@ -54,7 +54,7 @@ export default function AnalyticsPage() {
 
       {clubData?.approvalStats && (
         <div className="ck-card p-6 mb-6">
-          <h3 className="font-semibold mb-4 flex items-center gap-2 uppercase tracking-tighter" style={{ color: "var(--ck-text)" }}><ClipboardList className="w-5 h-5 text-red-500" /> Approval_Distribution</h3>
+          <h3 className="font-semibold mb-4 flex items-center gap-2 uppercase tracking-tighter" style={{ color: "var(--ck-text)" }}><ClipboardList className="w-5 h-5 text-red-500" /> Approval Distribution</h3>
           <div className="space-y-3">
             {clubData.approvalStats.map((s: any) => {
               const total = clubData.approvalStats.reduce((sum: number, a: any) => sum + a.count, 0) || 1;
@@ -79,7 +79,7 @@ export default function AnalyticsPage() {
 
       {clubData?.roleDistribution && (
         <div className="ck-card p-6">
-          <h3 className="font-semibold mb-4 flex items-center gap-2 uppercase tracking-tighter" style={{ color: "var(--ck-text)" }}><Users className="w-5 h-5 text-red-500" /> Member_Distribution</h3>
+          <h3 className="font-semibold mb-4 flex items-center gap-2 uppercase tracking-tighter" style={{ color: "var(--ck-text)" }}><Users className="w-5 h-5 text-red-500" /> Member Distribution</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {clubData.roleDistribution.map((r: any) => (
               <div key={r.role} className="text-center p-4 rounded-xl border border-red-900/10 bg-black/40 hover:border-red-500/30 transition-colors">

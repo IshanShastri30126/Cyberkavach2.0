@@ -113,8 +113,8 @@ export default function LeaderboardPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold font-mono tracking-tighter uppercase" style={{ color: "var(--ck-text)" }}>RANKING_MATRIX</h1>
-          <p className="mt-1" style={{ color: "var(--ck-text-secondary)" }}>OPERATIVE_CREDITS // MISSION_ACK</p>
+          <h1 className="text-3xl font-bold font-mono tracking-tighter uppercase" style={{ color: "var(--ck-text)" }}>RANKING MATRIX</h1>
+          <p className="mt-1" style={{ color: "var(--ck-text-secondary)" }}>OPERATIVE CREDITS // MISSION ACK</p>
         </div>
         <div className="flex gap-2">
           {isCoord && <button onClick={() => setShowGivePoints(true)} className="ck-btn-primary"><Plus className="w-4 h-4" /> Give Points</button>}
@@ -129,7 +129,7 @@ export default function LeaderboardPage() {
           <div className="ck-modal-overlay">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="ck-card p-6 w-full max-w-md relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-50" />
-              <div className="flex justify-between items-center mb-4"><h2 className="text-xl font-bold font-mono tracking-tighter uppercase">AWARD_POINTS</h2><button onClick={() => setShowGivePoints(false)} className="text-red-500"><X className="w-5 h-5"/></button></div>
+              <div className="flex justify-between items-center mb-4"><h2 className="text-xl font-bold font-mono tracking-tighter uppercase">AWARD POINTS</h2><button onClick={() => setShowGivePoints(false)} className="text-red-500"><X className="w-5 h-5"/></button></div>
               <form onSubmit={handleGivePoints} className="space-y-4">
                 <div>
                   <label className="ck-label">Select Member</label>
@@ -175,7 +175,7 @@ export default function LeaderboardPage() {
           <div className="ck-modal-overlay">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="ck-card p-6 w-full max-w-md relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-50" />
-              <div className="flex justify-between items-center mb-4"><h2 className="text-xl font-bold text-red-500 font-mono tracking-tighter uppercase">PENALTY_INFL</h2><button onClick={() => setShowDeductPoints(false)} className="text-red-500"><X className="w-5 h-5"/></button></div>
+              <div className="flex justify-between items-center mb-4"><h2 className="text-xl font-bold text-red-500 font-mono tracking-tighter uppercase">PENALTY INFL</h2><button onClick={() => setShowDeductPoints(false)} className="text-red-500"><X className="w-5 h-5"/></button></div>
               <form onSubmit={handleDeductPoints} className="space-y-4">
                 <div>
                   <label className="ck-label">Select Member</label>
@@ -213,7 +213,7 @@ export default function LeaderboardPage() {
           <div className="ck-modal-overlay">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="ck-card p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto relative">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-50" />
-              <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-bold font-mono tracking-tighter uppercase">BADGE_CONFIG</h2><button onClick={() => setShowManageBadges(false)} className="text-red-500"><X className="w-5 h-5"/></button></div>
+              <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-bold font-mono tracking-tighter uppercase">BADGE CONFIG</h2><button onClick={() => setShowManageBadges(false)} className="text-red-500"><X className="w-5 h-5"/></button></div>
               <div className="mb-6">
                 <h3 className="text-sm font-semibold mb-2">Create New Badge</h3>
                 <form onSubmit={handleCreateBadge} className="space-y-3 p-4 border border-[var(--ck-border)] rounded-xl bg-[var(--ck-bg-secondary)]">
@@ -246,7 +246,7 @@ export default function LeaderboardPage() {
 
       {/* Period Filter */}
       <div className="flex flex-wrap gap-2 mb-6">
-        {[{ value: "", label: "ALL_TIME" }, { value: "month", label: "CURRENT_CYCLE" }, { value: "semester", label: "SEMESTER_WINDOW" }].map((p) => (
+        {[{ value: "", label: "ALL TIME" }, { value: "month", label: "CURRENT CYCLE" }, { value: "semester", label: "SEMESTER WINDOW" }].map((p) => (
           <button key={p.value} onClick={() => setPeriod(p.value)} className={`px-4 py-2 rounded-lg text-xs font-mono tracking-widest transition-all ${period === p.value ? "bg-red-900 text-white shadow-[0_0_10px_rgba(220,38,38,0.3)] border border-red-500/50" : "bg-black/40 text-slate-400 border border-red-900/20 hover:text-red-400"}`}>
             {p.label}
           </button>
@@ -254,7 +254,7 @@ export default function LeaderboardPage() {
           <div className="flex items-center gap-4">
           <div className="relative ck-search-container ck-input-icon-wrapper">
             <Search className="w-4 h-4 text-red-500/50" />
-            <input className="ck-input ck-search-input w-48" placeholder="SEARCH_OPERATIVE..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input className="ck-input ck-search-input w-48" placeholder="SEARCH OPERATIVE..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         </div>
       </div>
@@ -288,32 +288,34 @@ export default function LeaderboardPage() {
           )}
 
           {/* Full List */}
-          <div className="ck-card overflow-hidden">
-            <table className="ck-table">
-              <thead><tr><th>Rank</th><th>Member</th><th>Points</th><th>Badges</th></tr></thead>
-              <tbody>
-                {filtered.map((entry, i) => (
-                  <motion.tr key={entry.user?.id || i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}>
-                    <td className="font-mono"><span className="font-bold text-red-500">#{entry.rank}</span></td>
-                    <td>
-                      <div className="flex items-center gap-3">
-                        {entry.user?.avatarUrl ? (
-                          <img src={`${SERVER_BASE_URL}${entry.user.avatarUrl}`} alt="Avatar" className="w-8 h-8 rounded-lg object-cover border border-red-500/20 shrink-0" />
-                        ) : (
-                          <DefaultAvatar className="w-8 h-8" />
-                        )}
-                        <div>
-                          <p className="text-sm font-medium text-white">{entry.user?.name}</p>
-                          <p className="text-[10px] uppercase tracking-widest" style={{ color: "var(--ck-text-muted)" }}>{entry.user?.role?.replace(/_/g, " ")}</p>
+          <div className="ck-card overflow-hidden border border-zinc-800">
+            <div className="overflow-x-auto w-full">
+              <table className="ck-table whitespace-nowrap">
+                <thead><tr><th>Rank</th><th>Member</th><th>Points</th><th>Badges</th></tr></thead>
+                <tbody>
+                  {filtered.map((entry, i) => (
+                    <motion.tr key={entry.user?.id || i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}>
+                      <td className="font-mono"><span className="font-bold text-red-500">#{entry.rank}</span></td>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          {entry.user?.avatarUrl ? (
+                            <img src={`${SERVER_BASE_URL}${entry.user.avatarUrl}`} alt="Avatar" className="w-8 h-8 rounded-lg object-cover border border-red-500/20 shrink-0" />
+                          ) : (
+                            <DefaultAvatar className="w-8 h-8" />
+                          )}
+                          <div>
+                            <p className="text-sm font-medium text-white">{entry.user?.name}</p>
+                            <p className="text-[10px] uppercase tracking-widest" style={{ color: "var(--ck-text-muted)" }}>{entry.user?.role?.replace(/_/g, " ")}</p>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td><span className="font-semibold flex items-center gap-1 font-mono text-white"><Star className="w-4 h-4 text-red-500" />{String(entry.totalPoints).padStart(2, '0')}</span></td>
-                    <td><div className="flex gap-1">{entry.badges.map((b, bi) => <span key={bi} title={b.name} className="text-xl">{b.icon}</span>)}</div></td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
+                      </td>
+                      <td><span className="font-semibold flex items-center gap-1 font-mono text-white"><Star className="w-4 h-4 text-red-500" />{String(entry.totalPoints).padStart(2, '0')}</span></td>
+                      <td><div className="flex gap-1">{entry.badges.map((b, bi) => <span key={bi} title={b.name} className="text-xl">{b.icon}</span>)}</div></td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}

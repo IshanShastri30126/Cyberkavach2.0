@@ -37,7 +37,7 @@ interface Registration {
 export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { token, user } = useAuth();
+  const { token, user, isLoading } = useAuth();
   const eventId = params.id as string;
 
   const [event, setEvent] = useState<EventDetail | null>(null);
@@ -47,7 +47,14 @@ export default function EventDetailPage() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"overview" | "registrations" | "teams">("overview");
 
-  const isCoord = user && ["FACULTY", "STUDENT_COORDINATOR", "TECH"].includes(user.role);
+  const isCoord = user && ["FACULTY", "STUDENT_COORDINATOR"].includes(user.role);
+  const isCore = user && ["FACULTY", "STUDENT_COORDINATOR", "TECH", "CONTENT", "SOCIAL_MEDIA"].includes(user.role);
+
+  useEffect(() => {
+    if (!isLoading && user && !["FACULTY", "STUDENT_COORDINATOR", "TECH", "CONTENT", "SOCIAL_MEDIA"].includes(user.role)) {
+      router.push("/dashboard");
+    }
+  }, [user, isLoading, router]);
 
   useEffect(() => {
     if (!token) return;
@@ -133,9 +140,20 @@ export default function EventDetailPage() {
         </div>
         <div className="flex gap-2">
           {event.isPublished && (
-            <a href={`/events/${event.slug}`} target="_blank" rel="noopener noreferrer" className="ck-btn-secondary text-xs">
-              <ExternalLink className="w-4 h-4" /> Public Page
-            </a>
+            <>
+              <a href={`/events/${event.slug}`} target="_blank" rel="noopener noreferrer" className="ck-btn-secondary text-xs">
+                <ExternalLink className="w-4 h-4" /> Public Page
+              </a>
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/events/${event.slug}`);
+                  alert("Link copied to clipboard!");
+                }} 
+                className="ck-btn-secondary text-xs"
+              >
+                Copy Link
+              </button>
+            </>
           )}
           {isCoord && user && ["FACULTY", "STUDENT_COORDINATOR"].includes(user.role) && (
             <>
@@ -270,8 +288,8 @@ export default function EventDetailPage() {
             </button>
             <span className="text-xs" style={{ color: "var(--ck-text-muted)" }}>{filteredRegs.length} results</span>
           </div>
-          <div className="overflow-x-auto">
-            <table className="ck-table">
+          <div className="overflow-x-auto w-full">
+            <table className="ck-table whitespace-nowrap">
               <thead>
                 <tr><th>#</th><th>Name</th><th>Email</th><th>Student ID</th><th>Department</th><th>Team</th><th>Registered</th></tr>
               </thead>

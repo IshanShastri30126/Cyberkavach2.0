@@ -30,6 +30,11 @@ export default function TeamsPage() {
   const [reusing, setReusing] = useState(false);
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
 
+  // Search/Sort/Filter States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "members" | "newest">("newest");
+  const [filterEventId, setFilterEventId] = useState("");
+
   const loadData = async () => {
     try {
       const [t, e] = await Promise.all([
@@ -105,12 +110,44 @@ export default function TeamsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-bold" style={{ color: "var(--ck-text)" }}>Teams</h1>
           <p className="mt-1" style={{ color: "var(--ck-text-secondary)" }}>Create and manage event teams</p>
         </div>
         <button onClick={() => setShowCreate(true)} className="ck-btn-primary"><Plus className="w-4 h-4" /> Create Team</button>
+      </div>
+
+      {/* Filters Toolbar */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-black/20 p-3 rounded-xl border border-[var(--ck-border)]">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input 
+            className="ck-input pl-9 w-full bg-zinc-900 border-zinc-800 text-sm py-2" 
+            placeholder="Search teams by name or code..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <select 
+          className="ck-input bg-zinc-900 border-zinc-800 text-sm py-2 w-full sm:w-auto"
+          value={filterEventId}
+          onChange={(e) => setFilterEventId(e.target.value)}
+        >
+          <option value="">All Events</option>
+          {events.map(ev => (
+            <option key={ev.id} value={ev.id}>{ev.title}</option>
+          ))}
+        </select>
+        <select 
+          className="ck-input bg-zinc-900 border-zinc-800 text-sm py-2 w-full sm:w-auto"
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as any)}
+        >
+          <option value="newest">Newest First</option>
+          <option value="name">Alphabetical (A-Z)</option>
+          <option value="members">Team Size</option>
+        </select>
       </div>
 
       {/* Create Team Modal */}
@@ -205,7 +242,15 @@ export default function TeamsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {teams.map((team, i) => (
+          {teams
+            .filter(t => !filterEventId || t.event?.id === filterEventId)
+            .filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.teamCode.toLowerCase().includes(searchQuery.toLowerCase()))
+            .sort((a, b) => {
+              if (sortBy === "name") return a.name.localeCompare(b.name);
+              if (sortBy === "members") return (b._count?.members || 0) - (a._count?.members || 0);
+              return 0; // newest is default from API
+            })
+            .map((team, i) => (
             <motion.div key={team.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
               className="ck-card overflow-hidden">
               <div className="p-5">

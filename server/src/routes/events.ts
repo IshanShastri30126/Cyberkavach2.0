@@ -5,8 +5,8 @@ import { authenticate, requireMinRole } from "../middlewares/auth";
 import { validate } from "../middlewares/validate";
 import { auditLog } from "../middlewares/auditLog";
 import { upload } from "../middlewares/upload";
-import { sendEventPublishedEmail } from "../lib/emailService";
-import { sendBulkNotification } from "../lib/notificationService";
+import { sendEventPublishedEmail, sendEventRegistrationEmail } from "../lib/emailService";
+import { sendBulkNotification, sendNotification } from "../lib/notificationService";
 
 const router = Router();
 
@@ -32,9 +32,10 @@ const createEventSchema = z.object({
 });
 
 // POST /api/events — Create event
-router.post("/", authenticate, requireMinRole("TECH"), validate(createEventSchema), auditLog("EVENT_CREATED"), async (req: Request, res: Response) => {
+router.post("/", authenticate, requireMinRole("STUDENT_COORDINATOR"), validate(createEventSchema), auditLog("EVENT_CREATED"), async (req: Request, res: Response) => {
   try {
     const data = req.body;
+    const isApproved = req.user!.role === "FACULTY";
     const event = await prisma.event.create({
       data: {
         title: data.title, description: data.description, venue: data.venue,
@@ -45,15 +46,51 @@ router.post("/", authenticate, requireMinRole("TECH"), validate(createEventSchem
         maxCapacity: data.maxCapacity, eventType: data.eventType || "general",
         googleFormUrl: data.googleFormUrl || null,
         documentUrl: data.documentUrl || null,
-        slug: generateSlug(data.title), isDraft: true, isPublished: false, creatorId: req.user!.userId,
+        slug: generateSlug(data.title), isDraft: true, isPublished: false, 
+        isApproved, creatorId: req.user!.userId,
       },
     });
+
+    if (req.user!.role === "STUDENT_COORDINATOR") {
+      const approvalRequest = await prisma.approvalRequest.create({
+        data: {
+          title: `Event Approval: ${event.title}`,
+          description: `Approval required for event "${event.title}" created by student coordinator ${req.user!.email}`,
+          type: "EVENT_PERMISSION",
+          requesterId: req.user!.userId,
+          currentLevel: 1,
+          maxLevel: 1,
+          lastActionAt: new Date(),
+          metadata: { eventId: event.id },
+          steps: {
+            create: [
+              { level: 1, role: "FACULTY", status: "PENDING" }
+            ]
+          }
+        }
+      });
+
+      const faculties = await prisma.user.findMany({
+        where: { role: "FACULTY", isActive: true },
+        select: { id: true },
+      });
+      for (const fac of faculties) {
+        await sendNotification({
+          userId: fac.id,
+          type: "APPROVAL_UPDATE",
+          title: "Event Approval Required",
+          message: `Student Coordinator ${req.user!.email} created event "${event.title}". Approval required to publish.`,
+          metadata: { requestId: approvalRequest.id, eventId: event.id }
+        });
+      }
+    }
+
     res.status(201).json({ event });
   } catch (err) { console.error("[Events] Create error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
 
 // POST /api/events/:id/poster — Upload poster
-router.post("/:id/poster", authenticate, requireMinRole("TECH"), upload.single("poster"), async (req: Request, res: Response) => {
+router.post("/:id/poster", authenticate, requireMinRole("STUDENT_COORDINATOR"), upload.single("poster"), async (req: Request, res: Response) => {
   try {
     if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
     const event = await prisma.event.update({ where: { id: req.params.id }, data: { posterUrl: `/uploads/${req.file.filename}` } });
@@ -62,7 +99,7 @@ router.post("/:id/poster", authenticate, requireMinRole("TECH"), upload.single("
 });
 
 // POST /api/events/:id/document — Upload document
-router.post("/:id/document", authenticate, requireMinRole("TECH"), upload.single("document"), async (req: Request, res: Response) => {
+router.post("/:id/document", authenticate, requireMinRole("STUDENT_COORDINATOR"), upload.single("document"), async (req: Request, res: Response) => {
   try {
     if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
     const event = await prisma.event.update({ where: { id: req.params.id }, data: { documentUrl: `/uploads/${req.file.filename}` } });
@@ -133,6 +170,25 @@ router.get("/public/:slug", async (req: Request, res: Response) => {
   } catch (err) { console.error("[Events] Public error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
 
+// GET /api/events/:id/is-registered — Check if current user is registered for the event
+router.get("/:id/is-registered", authenticate, async (req: Request, res: Response) => {
+  try {
+    const eventId = req.params.id;
+    const userId = req.user!.userId;
+    const registration = await prisma.eventRegistration.findUnique({
+      where: { userId_eventId: { userId, eventId } },
+      include: { team: true }
+    });
+    res.json({
+      registered: !!registration,
+      teamCode: registration?.team?.teamCode || null
+    });
+  } catch (err) {
+    console.error("[Events] Is-registered check error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/events/:id — Event detail
 router.get("/:id", async (req: Request, res: Response) => {
   try {
@@ -187,7 +243,7 @@ router.get("/:id/analytics", authenticate, requireMinRole("TECH"), async (req: R
 });
 
 // PATCH /api/events/:id — Update event
-router.patch("/:id", authenticate, requireMinRole("TECH"), auditLog("EVENT_UPDATED"), async (req: Request, res: Response) => {
+router.patch("/:id", authenticate, requireMinRole("STUDENT_COORDINATOR"), auditLog("EVENT_UPDATED"), async (req: Request, res: Response) => {
   try {
     const d = req.body; const u: any = {};
     if (d.title) u.title = d.title;
@@ -204,71 +260,72 @@ router.patch("/:id", authenticate, requireMinRole("TECH"), auditLog("EVENT_UPDAT
     if (d.eventType !== undefined) u.eventType = d.eventType;
     if (d.googleFormUrl !== undefined) u.googleFormUrl = d.googleFormUrl || null;
     if (d.documentUrl !== undefined) u.documentUrl = d.documentUrl || null;
+
+    if (req.user!.role === "STUDENT_COORDINATOR") {
+      u.isApproved = false;
+      u.isPublished = false;
+    }
+
     const event = await prisma.event.update({ where: { id: req.params.id }, data: u });
+
+    if (req.user!.role === "STUDENT_COORDINATOR") {
+      const approvalRequest = await prisma.approvalRequest.create({
+        data: {
+          title: `Event Approval (Edited): ${event.title}`,
+          description: `Re-approval required for updated event "${event.title}" modified by student coordinator ${req.user!.email}`,
+          type: "EVENT_PERMISSION",
+          requesterId: req.user!.userId,
+          currentLevel: 1,
+          maxLevel: 1,
+          lastActionAt: new Date(),
+          metadata: { eventId: event.id },
+          steps: {
+            create: [
+              { level: 1, role: "FACULTY", status: "PENDING" }
+            ]
+          }
+        }
+      });
+
+      const faculties = await prisma.user.findMany({
+        where: { role: "FACULTY", isActive: true },
+        select: { id: true },
+      });
+      for (const fac of faculties) {
+        await sendNotification({
+          userId: fac.id,
+          type: "APPROVAL_UPDATE",
+          title: "Event Edits Approval Required",
+          message: `Student Coordinator ${req.user!.email} edited event "${event.title}". Approval required to publish.`,
+          metadata: { requestId: approvalRequest.id, eventId: event.id }
+        });
+      }
+    }
+
     res.json({ event });
   } catch (err) { console.error("[Events] Update error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
 
 // PATCH /api/events/:id/publish — Toggle publish + send email to all members
+// PATCH /api/events/:id/publish — Toggle publish
 router.patch("/:id/publish", authenticate, requireMinRole("STUDENT_COORDINATOR"), auditLog("EVENT_PUBLISH_TOGGLED"), async (req: Request, res: Response) => {
   try {
     const event = await prisma.event.findUnique({
       where: { id: req.params.id },
-      include: { creator: { select: { name: true } } },
     });
     if (!event) { res.status(404).json({ error: "Event not found" }); return; }
 
     const willPublish = !event.isPublished;
+
+    if (willPublish && !event.isApproved) {
+      res.status(400).json({ error: "Cannot publish an unapproved event. It must first be approved by a Faculty coordinator." });
+      return;
+    }
+
     const updated = await prisma.event.update({
       where: { id: req.params.id },
-      data: { isPublished: willPublish, isDraft: false },
+      data: { isPublished: willPublish, isDraft: !willPublish },
     });
-
-    // When publishing (not unpublishing), send email to all active approved members
-    if (willPublish) {
-      // Fire and forget — don't block the response
-      (async () => {
-        try {
-          const members = await prisma.user.findMany({
-            where: { isActive: true, isApproved: true },
-            select: { id: true, email: true, name: true },
-          });
-
-          // Send in-app notifications
-          const memberIds = members.map((m) => m.id);
-          await sendBulkNotification(
-            memberIds,
-            "EVENT_REMINDER",
-            `New Event: ${event.title}`,
-            `${event.title} has been published! ${event.venue ? `Venue: ${event.venue}` : ""} — Check it out.`,
-            { eventId: event.id }
-          );
-
-          // Send email notifications
-          const recipients = members.map((m) => ({ email: m.email, name: m.name }));
-          await sendEventPublishedEmail(
-            {
-              title: event.title,
-              description: event.description,
-              venue: event.venue,
-              startDate: event.startDate,
-              endDate: event.endDate,
-              maxCapacity: event.maxCapacity,
-              rules: event.rules,
-              tags: event.tags,
-              posterUrl: event.posterUrl,
-              googleFormUrl: event.googleFormUrl,
-              documentUrl: event.documentUrl,
-              eventType: event.eventType,
-              creator: event.creator,
-            },
-            recipients
-          );
-        } catch (err) {
-          console.error("[Events] Email broadcast error:", err);
-        }
-      })();
-    }
 
     res.json({ event: updated });
   } catch (err) { console.error("[Events] Publish error:", err); res.status(500).json({ error: "Internal server error" }); }
@@ -286,18 +343,83 @@ router.delete("/:id", authenticate, requireMinRole("STUDENT_COORDINATOR"), audit
   } catch (err) { console.error("[Events] Delete error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
 
-// POST /api/events/:id/register — Individual registration
+// POST /api/events/:id/register — Individual or Team registration
 router.post("/:id/register", authenticate, auditLog("EVENT_REGISTRATION"), async (req: Request, res: Response) => {
   try {
     const eventId = req.params.id; const userId = req.user!.userId;
+    const { teamName, teamMembers, name, studentId, phone, department, semester, institute } = req.body;
+
+    // Update user details if provided
+    const userUpdateData: any = {};
+    if (name) userUpdateData.name = name;
+    if (studentId !== undefined) userUpdateData.studentId = studentId || null;
+    if (phone !== undefined) userUpdateData.phone = phone || null;
+    if (department !== undefined) userUpdateData.department = department || null;
+    if (semester !== undefined) userUpdateData.semester = semester || null;
+    if (institute !== undefined) userUpdateData.institute = institute || null;
+
+    if (Object.keys(userUpdateData).length > 0) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: userUpdateData
+      });
+    }
     const event = await prisma.event.findUnique({ where: { id: eventId }, include: { _count: { select: { registrations: true } } } });
     if (!event || !event.isPublished) { res.status(404).json({ error: "Event not found or not published" }); return; }
     if (event.registrationDeadline && new Date() > event.registrationDeadline) { res.status(400).json({ error: "Registration deadline has passed" }); return; }
     if (event.maxCapacity && event._count.registrations >= event.maxCapacity) { res.status(400).json({ error: "Event is at full capacity" }); return; }
     const existing = await prisma.eventRegistration.findUnique({ where: { userId_eventId: { userId, eventId } } });
     if (existing) { res.status(409).json({ error: "Already registered" }); return; }
-    const reg = await prisma.eventRegistration.create({ data: { userId, eventId } });
-    res.status(201).json({ registration: reg });
+    
+    let teamId = null;
+    let generatedTeamCode = null;
+    if (teamName && event.maxTeamSize && event.maxTeamSize > 1) {
+      // Create team
+      const teamCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const newTeam = await prisma.team.create({
+        data: { name: teamName, teamCode, eventId, leaderId: userId }
+      });
+      teamId = newTeam.id;
+      generatedTeamCode = teamCode;
+      // Add creator as member
+      await prisma.teamMember.create({ data: { teamId, userId } });
+      
+      // If team members are provided by email, try to add them if they exist
+      if (teamMembers && Array.isArray(teamMembers)) {
+        for (const email of teamMembers) {
+          const user = await prisma.user.findUnique({ where: { email } });
+          if (user) {
+             // Check if user is already registered
+             const existingReg = await prisma.eventRegistration.findUnique({ where: { userId_eventId: { userId: user.id, eventId } } });
+             if (!existingReg) {
+                await prisma.teamMember.create({ data: { teamId, userId: user.id } });
+                await prisma.eventRegistration.create({ data: { userId: user.id, eventId, teamId } });
+                sendEventRegistrationEmail({ name: user.name, email: user.email }, {
+                  title: event.title,
+                  startDate: event.startDate,
+                  venue: event.venue
+                }).catch(err => console.error("[Events] Teammate email failed:", err));
+             }
+          }
+        }
+      }
+    }
+    
+    const reg = await prisma.eventRegistration.create({ data: { userId, eventId, teamId } });
+
+    const userObj = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true }
+    });
+    if (userObj) {
+      sendEventRegistrationEmail(userObj, {
+        title: event.title,
+        startDate: event.startDate,
+        venue: event.venue
+      }).catch(err => console.error("[Events] Registrant email failed:", err));
+    }
+
+    res.status(201).json({ registration: reg, teamCode: generatedTeamCode });
   } catch (err) { console.error("[Events] Register error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
 
@@ -351,6 +473,59 @@ router.get("/:id/registrations/export", authenticate, requireMinRole("TECH"), as
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.send(csv);
   } catch (err) { console.error("[Events] Export error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
+// POST /api/events/:id/send-email — Manually trigger email/notification broadcast to all members
+router.post("/:id/send-email", authenticate, requireMinRole("STUDENT_COORDINATOR"), auditLog("EVENT_NOTIFICATIONS_SENT"), async (req: Request, res: Response) => {
+  try {
+    const event = await prisma.event.findUnique({
+      where: { id: req.params.id },
+      include: { creator: { select: { name: true } } },
+    });
+    if (!event) { res.status(404).json({ error: "Event not found" }); return; }
+    if (!event.isApproved) { res.status(400).json({ error: "Cannot send emails for an unapproved event" }); return; }
+
+    const members = await prisma.user.findMany({
+      where: { isActive: true, isApproved: true },
+      select: { id: true, email: true, name: true },
+    });
+
+    const memberIds = members.map((m) => m.id);
+    // Send in-app notifications
+    await sendBulkNotification(
+      memberIds,
+      "EVENT_REMINDER",
+      `New Event: ${event.title}`,
+      `${event.title} is live! ${event.venue ? `Venue: ${event.venue}` : ""} — Register now.`,
+      { eventId: event.id }
+    );
+
+    // Send email notifications
+    const recipients = members.map((m) => ({ email: m.email, name: m.name }));
+    const sentCount = await sendEventPublishedEmail(
+      {
+        title: event.title,
+        description: event.description,
+        venue: event.venue,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        maxCapacity: event.maxCapacity,
+        rules: event.rules,
+        tags: event.tags,
+        posterUrl: event.posterUrl,
+        googleFormUrl: event.googleFormUrl,
+        documentUrl: event.documentUrl,
+        eventType: event.eventType,
+        creator: event.creator,
+      },
+      recipients
+    );
+
+    res.json({ success: true, message: `Email broadcast sent to ${sentCount} recipients.` });
+  } catch (err) {
+    console.error("[Events] Manual email error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 export default router;

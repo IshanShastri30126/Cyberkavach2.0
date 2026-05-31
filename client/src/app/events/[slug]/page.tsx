@@ -5,14 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import { api, SERVER_BASE_URL } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { motion } from "framer-motion";
-import { Calendar, MapPin, Clock, Users, Tag, Shield, AlertCircle, CheckCircle, UserPlus } from "lucide-react";
+import { Calendar, MapPin, Clock, Users, Tag, Shield, AlertCircle, CheckCircle, UserPlus, Mail, Copy, ExternalLink } from "lucide-react";
 
 interface EventDetail {
   id: string; title: string; description?: string; venue?: string;
   startDate: string; endDate: string; registrationDeadline?: string;
   posterUrl?: string; slug: string; rules?: string; tags: string[];
   minTeamSize?: number; maxTeamSize?: number; maxCapacity?: number;
-  isPublished: boolean; eventType: string;
+  isPublished: boolean; eventType: string; googleFormUrl?: string;
   creator: { name: string; role: string };
   _count: { registrations: number; teams: number };
 }
@@ -28,6 +28,38 @@ export default function PublicEventPage() {
   const [error, setError] = useState("");
   const [registering, setRegistering] = useState(false);
   const [registered, setRegistered] = useState(false);
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [showJoinTeamModal, setShowJoinTeamModal] = useState(false);
+  const [joinTeamCode, setJoinTeamCode] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    studentId: "",
+    email: "",
+    phone: "",
+    department: "",
+    semester: "",
+    institute: "",
+    teammateCount: "0",
+    teamName: ""
+  });
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [teammateEmails, setTeammateEmails] = useState("");
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        studentId: user.studentId || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        department: user.department || "",
+        semester: user.semester || "",
+        institute: user.institute || "",
+        teammateCount: "0",
+        teamName: ""
+      });
+    }
+  }, [user]);
 
   useEffect(() => {
     const load = async () => {
@@ -37,8 +69,18 @@ export default function PublicEventPage() {
         
         // If token is present, check if user is already registered for this event
         if (token && data.event) {
-          const regData = await api<{ registered: boolean }>(`/events/${data.event.id}/is-registered`, { token });
+          const regData = await api<{ registered: boolean; teamCode?: string }>(`/events/${data.event.id}/is-registered`, { token });
           setRegistered(regData.registered);
+          // Also fetch team info to see if user has an invite code
+          try {
+            const myTeams = await api<{ teams: any[] }>("/teams/my", { token });
+            const eventTeam = myTeams.teams.find(t => t.eventId === data.event.id);
+            if (eventTeam) {
+              setInviteCode(eventTeam.teamCode);
+            }
+          } catch (err) {
+            console.error("Failed to load team code:", err);
+          }
         }
       } catch (err) { 
         setError(err instanceof Error ? err.message : "Event not found"); 
@@ -49,15 +91,101 @@ export default function PublicEventPage() {
     load();
   }, [slug, token]);
 
-  const handleRegister = async () => {
+  const handleRegisterClick = () => {
     if (!token) { router.push(`/?redirect=/events/${slug}`); return; }
+    setFormData({
+      name: user?.name || "",
+      studentId: user?.studentId || "",
+      email: user?.email || "",
+      phone: user?.phone || "",
+      department: user?.department || "",
+      semester: user?.semester || "",
+      institute: user?.institute || "",
+      teammateCount: "0",
+      teamName: ""
+    });
+    setInviteCode(null);
+    setTeammateEmails("");
+    setShowFormModal(true);
+  };
+
+  const handleGoogleFormRegisterClick = () => {
+    if (!token) { router.push(`/?redirect=/events/${slug}`); return; }
+    handleGoogleFormRegister();
+  };
+
+  const handleGoogleFormRegister = async () => {
+    if (!token) return;
     setRegistering(true);
     try {
+      window.open(event!.googleFormUrl || undefined, "_blank", "noopener,noreferrer");
       await api(`/events/${event!.id}/register`, { method: "POST", token });
       setRegistered(true);
+      alert("Registration confirmed and welcome email sent! Status updated.");
+    } catch (err) {
+      console.error("Google form background register failed:", err);
+      alert("Failed to confirm registration in the portal.");
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    setRegistering(true);
+    try {
+      const body: any = {
+        name: formData.name,
+        studentId: formData.studentId,
+        phone: formData.phone,
+        department: formData.department,
+        semester: formData.semester,
+        institute: formData.institute
+      };
+      if (event?.maxTeamSize && event.maxTeamSize > 1) {
+        if (formData.teamName) {
+          body.teamName = formData.teamName;
+        }
+        if (teammateEmails.trim()) {
+          body.teamMembers = teammateEmails.split(",").map(email => email.trim()).filter(Boolean);
+        }
+      }
+      const response = await api<{ registration: any; teamCode?: string }>(
+        `/events/${event!.id}/register`,
+        { method: "POST", token, body: JSON.stringify(body) }
+      );
+      setRegistered(true);
+      if (response.teamCode) {
+        setInviteCode(response.teamCode);
+      }
+      alert("Registered successfully!");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Registration failed");
-    } finally { setRegistering(false); }
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  const handleJoinTeamSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    setRegistering(true);
+    try {
+      await api(`/teams/join`, {
+        method: "POST",
+        token,
+        body: JSON.stringify({ teamCode: joinTeamCode })
+      });
+      setRegistered(true);
+      setInviteCode(joinTeamCode);
+      setShowJoinTeamModal(false);
+      alert("Joined team successfully!");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to join team");
+    } finally {
+      setRegistering(false);
+    }
   };
 
   const deadlinePassed = event?.registrationDeadline
@@ -268,23 +396,66 @@ export default function PublicEventPage() {
               )}
 
               {/* Register Button */}
-              {registered ? (
-                <div className="flex items-center justify-center gap-2 p-3 rounded-xl border border-emerald-950 bg-emerald-950/30 text-emerald-400">
-                  <CheckCircle className="w-5 h-5 shrink-0" />
-                  <p className="text-sm font-semibold uppercase font-mono tracking-widest">You&apos;re registered!</p>
+              {event.googleFormUrl ? (
+                registered ? (
+                  <div className="flex items-center justify-center gap-2 p-3 rounded-xl border border-emerald-950 bg-emerald-950/30 text-emerald-400">
+                    <CheckCircle className="w-5 h-5 shrink-0" />
+                    <p className="text-sm font-semibold uppercase font-mono tracking-widest">You&apos;re registered!</p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleGoogleFormRegisterClick}
+                    disabled={registering}
+                    className="ck-btn-primary w-full py-3.5 text-sm disabled:opacity-50"
+                  >
+                    <ExternalLink className="w-5 h-5 inline mr-2" /> 
+                    {registering ? "Registering..." : "Register via Google Form"}
+                  </button>
+                )
+              ) : registered ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-center gap-2 p-3 rounded-xl border border-emerald-950 bg-emerald-950/30 text-emerald-400">
+                    <CheckCircle className="w-5 h-5 shrink-0" />
+                    <p className="text-sm font-semibold uppercase font-mono tracking-widest">You&apos;re registered!</p>
+                  </div>
+                  {inviteCode && (
+                    <div className="p-4 rounded-xl border border-red-950/40 bg-red-950/10 text-center font-mono">
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1.5">Your Invite Code</p>
+                      <p className="text-lg font-bold text-red-400 tracking-wider select-all">{inviteCode}</p>
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(inviteCode);
+                          alert("Invite Code copied to clipboard!");
+                        }}
+                        className="text-[10px] text-red-500 hover:text-white underline mt-1 flex items-center gap-1 mx-auto"
+                      >
+                        <Copy className="w-3 h-3" /> Copy Code
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
-                <button
-                  onClick={handleRegister}
-                  disabled={registering || deadlinePassed || isFull}
-                  className="ck-btn-primary w-full py-3.5 text-sm disabled:opacity-50"
-                >
-                  {registering ? "Registering..." : !token ? (
-                    <><UserPlus className="w-5 h-5" /> Login & Register</>
-                  ) : deadlinePassed ? "Deadline Passed" : isFull ? "Full" : (
-                    <><UserPlus className="w-5 h-5" /> Register Now</>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={handleRegisterClick}
+                    disabled={registering || deadlinePassed || isFull}
+                    className="ck-btn-primary w-full py-3.5 text-sm disabled:opacity-50"
+                  >
+                    {registering ? "Registering..." : !token ? (
+                      <><UserPlus className="w-5 h-5" /> Login & Register</>
+                    ) : deadlinePassed ? "Deadline Passed" : isFull ? "Full" : (
+                      <><UserPlus className="w-5 h-5" /> Register Now</>
+                    )}
+                  </button>
+                  {token && (event.minTeamSize && event.minTeamSize > 1) && (
+                    <button
+                      onClick={() => setShowJoinTeamModal(true)}
+                      className="ck-btn-secondary w-full py-3 text-xs"
+                    >
+                      Join Team via Invite Code
+                    </button>
                   )}
-                </button>
+                </div>
               )}
 
               {!event.maxCapacity && (
@@ -303,6 +474,215 @@ export default function PublicEventPage() {
           </div>
         </div>
       </div>
+
+      {/* Registration Details Form Modal */}
+      {showFormModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="ck-card max-w-md w-full p-6 relative">
+            <button onClick={() => setShowFormModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
+            
+            {registered ? (
+              <div className="text-center py-4 space-y-6">
+                <div className="w-16 h-16 rounded-full bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+                  <CheckCircle className="w-8 h-8 text-emerald-400 animate-bounce" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold font-mono text-white uppercase tracking-tighter">ACCESS GRANTED</h3>
+                  <p className="text-xs text-emerald-400/80 font-mono mt-1 uppercase tracking-widest font-semibold">Registration Successful</p>
+                </div>
+
+                <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-950/60 text-left space-y-2.5 font-mono text-xs">
+                  <div className="flex justify-between border-b border-zinc-900 pb-1.5">
+                    <span className="text-zinc-500 uppercase">Event</span>
+                    <span className="text-white font-semibold truncate max-w-[200px]">{event.title}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-zinc-900 pb-1.5">
+                    <span className="text-zinc-500 uppercase">Registrant</span>
+                    <span className="text-white font-semibold">{formData.name}</span>
+                  </div>
+                  {formData.studentId && (
+                    <div className="flex justify-between border-b border-zinc-900 pb-1.5">
+                      <span className="text-zinc-500 uppercase">ID</span>
+                      <span className="text-white font-semibold">{formData.studentId}</span>
+                    </div>
+                  )}
+                  {formData.teamName && (
+                    <div className="flex justify-between border-b border-zinc-900 pb-1.5">
+                      <span className="text-zinc-500 uppercase">Team Name</span>
+                      <span className="text-white font-semibold">{formData.teamName}</span>
+                    </div>
+                  )}
+                </div>
+
+                {inviteCode && (
+                  <div className="p-5 rounded-xl border border-red-950/40 bg-red-950/10 text-center relative overflow-hidden group">
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono font-bold mb-2">Teammate Invite Code</p>
+                    <p className="text-2xl font-extrabold text-red-400 tracking-wider font-mono select-all select-none">{inviteCode}</p>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(inviteCode);
+                        alert("Invite Code copied to clipboard!");
+                      }}
+                      className="text-xs text-red-400 hover:text-white underline mt-2.5 flex items-center gap-1.5 mx-auto font-mono"
+                    >
+                      <Copy className="w-3.5 h-3.5" /> COPY INVITE CODE
+                    </button>
+                  </div>
+                )}
+
+                <button 
+                  onClick={() => setShowFormModal(false)} 
+                  className="ck-btn-primary w-full py-3 font-mono font-bold uppercase tracking-wider text-xs"
+                >
+                  Complete
+                </button>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-xl font-bold font-mono text-white mb-2 uppercase tracking-tighter">Registration Form</h3>
+                <p className="text-xs text-slate-400 mb-6 font-mono">Fill in your operational details to register.</p>
+                
+                <form onSubmit={handleFormSubmit} className="space-y-4">
+                  <div>
+                    <label className="ck-label font-mono uppercase tracking-wider text-[10px]">Full Name *</label>
+                    <input 
+                      className="ck-input" 
+                      placeholder="e.g. John Doe" 
+                      value={formData.name} 
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+                      required 
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="ck-label font-mono uppercase tracking-wider text-[10px]">College / Guest ID *</label>
+                      <input 
+                        className="ck-input" 
+                        placeholder="e.g. 22CS101" 
+                        value={formData.studentId} 
+                        onChange={(e) => setFormData({ ...formData, studentId: e.target.value })} 
+                        required 
+                      />
+                    </div>
+                    <div>
+                      <label className="ck-label font-mono uppercase tracking-wider text-[10px]">Contact Phone *</label>
+                      <input 
+                        className="ck-input" 
+                        placeholder="Phone number" 
+                        value={formData.phone} 
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
+                        required 
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-1">
+                      <label className="ck-label font-mono uppercase tracking-wider text-[10px]">Semester</label>
+                      <input 
+                        className="ck-input" 
+                        placeholder="1-8" 
+                        value={formData.semester} 
+                        onChange={(e) => setFormData({ ...formData, semester: e.target.value })} 
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="ck-label font-mono uppercase tracking-wider text-[10px]">Department</label>
+                      <input 
+                        className="ck-input" 
+                        placeholder="e.g. Computer Science" 
+                        value={formData.department} 
+                        onChange={(e) => setFormData({ ...formData, department: e.target.value })} 
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="ck-label font-mono uppercase tracking-wider text-[10px]">Institute / College</label>
+                    <input 
+                      className="ck-input" 
+                      placeholder="e.g. CSPIT" 
+                      value={formData.institute} 
+                      onChange={(e) => setFormData({ ...formData, institute: e.target.value })} 
+                    />
+                  </div>
+                  <div>
+                    <label className="ck-label font-mono uppercase tracking-wider text-[10px]">Email (Login Identifier)</label>
+                    <input className="ck-input bg-zinc-900 border-zinc-800 text-zinc-550 cursor-not-allowed text-xs truncate" value={formData.email} disabled />
+                  </div>
+
+                  {event && event.maxTeamSize && event.maxTeamSize > 1 && (
+                    <div className="p-4 rounded-xl border border-red-900/30 bg-red-950/10 space-y-4">
+                      <p className="text-xs font-semibold text-red-400 font-mono uppercase tracking-wider">Team Configurations Required</p>
+                      <div>
+                        <label className="ck-label font-mono text-[10px]">Team Name *</label>
+                        <input 
+                          className="ck-input" 
+                          placeholder="e.g. Hex Hunters" 
+                          value={formData.teamName} 
+                          onChange={(e) => setFormData({ ...formData, teamName: e.target.value })} 
+                          required 
+                        />
+                      </div>
+                      <div>
+                        <label className="ck-label font-mono text-[10px]">Teammate Emails (comma-separated)</label>
+                        <input 
+                          className="ck-input" 
+                          placeholder="e.g. member1@gmail.com, member2@gmail.com" 
+                          value={teammateEmails} 
+                          onChange={(e) => setTeammateEmails(e.target.value)} 
+                        />
+                      </div>
+                      <div>
+                        <label className="ck-label font-mono text-[10px]">Estimated Teammates Count</label>
+                        <input 
+                          type="number" 
+                          min="1" 
+                          max={event.maxTeamSize - 1} 
+                          className="ck-input" 
+                          placeholder="Number of teammates" 
+                          value={formData.teammateCount} 
+                          onChange={(e) => setFormData({ ...formData, teammateCount: e.target.value })} 
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <button type="submit" disabled={registering} className="ck-btn-primary w-full mt-6">
+                    {registering ? "Processing Registration..." : "Confirm Registration"}
+                  </button>
+                </form>
+              </>
+            )}
+          </motion.div>
+        </div>
+      )}
+
+      {/* Join Team via Invite Code Modal */}
+      {showJoinTeamModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="ck-card max-w-md w-full p-6 relative">
+            <button onClick={() => setShowJoinTeamModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
+            <h3 className="text-xl font-bold font-mono text-white mb-2 uppercase tracking-tighter">Join Event Team</h3>
+            <p className="text-xs text-slate-400 mb-6 font-mono">Enter the invite code generated by your team leader.</p>
+            
+            <form onSubmit={handleJoinTeamSubmit} className="space-y-4">
+              <div>
+                <label className="ck-label font-mono uppercase tracking-wider text-[10px]">Invite Code *</label>
+                <input 
+                  className="ck-input tracking-widest text-center uppercase font-mono font-bold border-red-500/30 text-red-400 focus:border-red-500" 
+                  placeholder="CK-T-XXXXXX" 
+                  value={joinTeamCode} 
+                  onChange={(e) => setJoinTeamCode(e.target.value.toUpperCase())} 
+                  required 
+                />
+              </div>
+
+              <button type="submit" disabled={registering || !joinTeamCode.trim()} className="ck-btn-primary w-full mt-6">
+                {registering ? "Joining Team..." : "Join Team & Register"}
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

@@ -253,6 +253,15 @@ router.post(
           where: { id: request.id },
           data: { status: "REJECTED", lastActionAt: new Date() },
         });
+        if (request.type === "EVENT_PERMISSION") {
+          const eventId = (request.metadata as any)?.eventId;
+          if (eventId) {
+            await prisma.event.update({
+              where: { id: eventId },
+              data: { isApproved: false },
+            });
+          }
+        }
       } else if (status === "UNDER_REVIEW") {
         await prisma.approvalRequest.update({
           where: { id: request.id },
@@ -291,6 +300,15 @@ router.post(
             where: { id: request.id },
             data: { status: "APPROVED", lastActionAt: new Date() },
           });
+          if (request.type === "EVENT_PERMISSION") {
+            const eventId = (request.metadata as any)?.eventId;
+            if (eventId) {
+              await prisma.event.update({
+                where: { id: eventId },
+                data: { isApproved: true },
+              });
+            }
+          }
         }
       }
 

@@ -151,7 +151,7 @@ export default function ApprovalsPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     {a.metadata?.attachments?.length > 0 && <Paperclip className="w-4 h-4 text-indigo-400" />}
-                    <span className={`ck-badge ${STATUS_BADGE[a.status]}`}>{a.status}</span>
+                    <span className={`ck-badge ${STATUS_BADGE[a.status]}`}>{a.status.replace(/_/g, " ")}</span>
                     {expanded === a.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </div>
                 </div>
@@ -191,7 +191,7 @@ export default function ApprovalsPage() {
                             {step.approver && <p className="text-xs" style={{ color: "var(--ck-text-muted)" }}>by {step.approver.name} · {step.decidedAt ? new Date(step.decidedAt).toLocaleString() : ""}</p>}
                             {step.comment && <p className="text-xs mt-1 italic flex items-center gap-1" style={{ color: "var(--ck-text-secondary)" }}><MessageSquare className="w-3 h-3" /> {step.comment}</p>}
                           </div>
-                          <span className={`ck-badge ${STATUS_BADGE[step.status]}`}>{step.status}</span>
+                          <span className={`ck-badge ${STATUS_BADGE[step.status]}`}>{step.status.replace(/_/g, " ")}</span>
                         </div>
                       ))}
                     </div>

@@ -170,6 +170,58 @@ export async function sendWelcomeEmail(user: { name: string; email: string; role
   return sendMail(user.email, "Registration Received — Awaiting Clearance", baseTemplate(content));
 }
 
+// ─── Event Registration Confirmed Email ───────────────────────
+
+export async function sendEventRegistrationEmail(
+  user: { name: string; email: string },
+  event: { title: string; startDate: Date; venue?: string | null }
+) {
+  const startStr = event.startDate.toLocaleDateString("en-IN", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+    timeZone: "Asia/Kolkata",
+  });
+  const startTime = event.startDate.toLocaleTimeString("en-IN", {
+    hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata",
+  });
+
+  const content = `
+    <h2 style="color: #ffffff; font-size: 22px; font-weight: 700; margin: 0 0 8px;">
+      Registration Confirmed! 🛡️
+    </h2>
+    <p style="color: #94a3b8; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
+      Hello <strong style="color: #f1f5f9;">${user.name}</strong>, you have successfully registered for <strong style="color: #f87171;">${event.title}</strong>.
+    </p>
+    
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: rgba(0, 0, 0, 0.5); border: 1px solid #262626; border-radius: 10px; margin-bottom: 24px;">
+      <tr>
+        <td style="padding: 20px 24px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="color: #475569; font-size: 11px; font-family: 'Courier New', monospace; letter-spacing: 2px; padding-bottom: 10px;">EVENT</td>
+              <td style="color: #f1f5f9; font-size: 13px; text-align: right; padding-bottom: 10px; font-weight: bold;">${event.title}</td>
+            </tr>
+            <tr>
+              <td style="color: #475569; font-size: 11px; font-family: 'Courier New', monospace; letter-spacing: 2px; padding-bottom: 10px;">START_DATE</td>
+              <td style="color: #f1f5f9; font-size: 13px; text-align: right; padding-bottom: 10px;">${startStr} at ${startTime}</td>
+            </tr>
+            ${event.venue ? `
+            <tr>
+              <td style="color: #475569; font-size: 11px; font-family: 'Courier New', monospace; letter-spacing: 2px;">VENUE</td>
+              <td style="color: #f1f5f9; font-size: 13px; text-align: right;">${event.venue}</td>
+            </tr>` : ""}
+          </table>
+        </td>
+      </tr>
+    </table>
+    
+    <p style="color: #64748b; font-size: 12px; line-height: 1.6; margin: 0; text-align: center;">
+      Please be present at the venue on time. Stay secure!
+    </p>
+  `;
+
+  return sendMail(user.email, `Registration Confirmed: ${event.title}`, baseTemplate(content));
+}
+
 // ─── Login Notification Email ─────────────────────────────────
 
 export async function sendLoginNotificationEmail(

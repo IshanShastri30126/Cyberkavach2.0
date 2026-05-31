@@ -19,6 +19,7 @@ import certificateRoutes from "./routes/certificates";
 import appreciationRoutes from "./routes/appreciation";
 import analyticsRoutes from "./routes/analytics";
 import notificationRoutes from "./routes/notifications";
+import settingsRoutes from "./routes/settings";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -89,6 +90,7 @@ app.use("/api/certificates", certificateRoutes);
 app.use("/api/appreciation", appreciationRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/settings", settingsRoutes);
 
 // ─── Global Error Handler ──────────────────────────────────
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

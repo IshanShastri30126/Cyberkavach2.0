@@ -1,6 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Share+Tech+Mono&display=swap');
 @import "tailwindcss";
 
+@theme {
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+}
+
 /* ─── CyberKavach 2.0 Design System (Cyber Red Theme) ───────── */
 
 :root {
@@ -307,6 +312,11 @@ body {
   display: flex; flex-direction: column;
   transition: width 0.3s ease;
   position: relative;
+  overflow: hidden;
+}
+.ck-sidebar-collapsed {
+  width: 80px !important;
+  min-width: 80px !important;
 }
 .ck-sidebar::before {
   content: '';
@@ -372,8 +382,22 @@ body {
   20% { clip: rect(65px, 9999px, 98px, 0); }
   40% { clip: rect(11px, 9999px, 20px, 0); }
   60% { clip: rect(98px, 9999px, 80px, 0); }
-  80% { clip: rect(20px, 9999px, 5px, 0); }
   100% { clip: rect(50px, 9999px, 40px, 0); }
+}
+
+/* ─── 3D Cyber Utilities ───────────────────────────────────── */
+.perspective-1000 {
+  perspective: 1000px;
+}
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+.rotate-x-60 {
+  transform: rotateX(60deg);
+}
+@keyframes grid {
+  0% { transform: translateY(-50%); }
+  100% { transform: translateY(0); }
 }
 
 /* ─── Modal ────────────────────────────────────────────────── */
@@ -395,3 +419,434 @@ body {
 .ck-table td { padding: 0.75rem 1rem; font-size: 0.875rem; border-bottom: 1px solid var(--ck-border); color: var(--ck-text); }
 .ck-table tr { transition: background-color 0.2s ease; }
 .ck-table tr:hover td { background: rgba(220, 38, 38, 0.05); color: var(--ck-accent); }
+.ck-table tbody tr:nth-child(even) td { background: rgba(255, 255, 255, 0.015); }
+.ck-table tbody tr:nth-child(even):hover td { background: rgba(220, 38, 38, 0.05); }
+
+/* ─── Responsive Spacing Tokens ───────────────────────────── */
+:root {
+  --ck-space-xs: 0.25rem;
+  --ck-space-sm: 0.5rem;
+  --ck-space-md: 1rem;
+  --ck-space-lg: 1.5rem;
+  --ck-space-xl: 2rem;
+  --ck-space-2xl: 3rem;
+  --ck-sidebar-width: 260px;
+  --ck-sidebar-collapsed-width: 80px;
+  --ck-topbar-height: 60px;
+  --ck-radius-sm: 0.375rem;
+  --ck-radius-md: 0.75rem;
+  --ck-radius-lg: 1rem;
+  --ck-radius-xl: 1.5rem;
+}
+
+/* ─── Card Grid System ────────────────────────────────────── */
+.ck-cards-grid {
+  display: grid;
+  gap: var(--ck-space-lg);
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* ─── Trend Indicator ─────────────────────────────────────── */
+.ck-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-family: 'Share Tech Mono', monospace;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  letter-spacing: 0.03em;
+  line-height: 1;
+}
+.ck-trend-up {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.ck-trend-down {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+}
+.ck-trend-neutral {
+  color: var(--ck-text-muted);
+  background: rgba(113, 113, 122, 0.1);
+  border: 1px solid rgba(113, 113, 122, 0.2);
+}
+
+/* ─── Search / Filter Bar ─────────────────────────────────── */
+.ck-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--ck-space-md);
+  flex-wrap: wrap;
+}
+.ck-filter-bar .ck-input {
+  flex: 1;
+  min-width: 200px;
+}
+.ck-filter-select {
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--ck-border);
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--ck-text);
+  font-size: 0.8125rem;
+  font-family: 'Share Tech Mono', monospace;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+.ck-filter-select:focus {
+  border-color: var(--ck-accent);
+  box-shadow: 0 0 12px rgba(255, 0, 60, 0.4);
+}
+.ck-filter-select option {
+  background: #0a0a0a;
+  color: var(--ck-text);
+}
+
+/* ─── Sortable Table Headers ──────────────────────────────── */
+.ck-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 1.75rem;
+  white-space: nowrap;
+}
+.ck-table th.sortable:hover {
+  color: var(--ck-accent);
+  background: rgba(220, 38, 38, 0.08);
+}
+.ck-table th .sort-icon {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.4;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+.ck-table th.sortable:hover .sort-icon,
+.ck-table th.sort-active .sort-icon {
+  opacity: 1;
+  color: var(--ck-accent);
+}
+
+/* ─── Pagination ──────────────────────────────────────────── */
+.ck-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ck-space-md) 0;
+  gap: var(--ck-space-md);
+  flex-wrap: wrap;
+  font-family: 'Share Tech Mono', monospace;
+}
+.ck-pagination-info {
+  font-size: 0.75rem;
+  color: var(--ck-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.ck-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.ck-page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0 0.5rem;
+  border-radius: var(--ck-radius-sm);
+  border: 1px solid var(--ck-border);
+  background: transparent;
+  color: var(--ck-text-secondary);
+  font-size: 0.75rem;
+  font-family: 'Share Tech Mono', monospace;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.ck-page-btn:hover:not(:disabled) {
+  border-color: var(--ck-primary);
+  color: var(--ck-text);
+  background: rgba(220, 38, 38, 0.08);
+}
+.ck-page-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.ck-page-btn.active {
+  background: linear-gradient(135deg, var(--ck-primary-dark), var(--ck-primary));
+  color: white;
+  border-color: var(--ck-primary);
+  box-shadow: 0 0 10px rgba(220, 38, 38, 0.3);
+}
+
+/* ─── Status Badge ────────────────────────────────────────── */
+.ck-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-family: 'Share Tech Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+}
+.ck-status-active {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+.ck-status-active::before {
+  content: '';
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+.ck-status-inactive {
+  color: var(--ck-text-muted);
+  background: rgba(113, 113, 122, 0.1);
+  border-color: rgba(113, 113, 122, 0.2);
+}
+.ck-status-inactive::before {
+  content: '';
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background: var(--ck-text-muted);
+}
+.ck-status-pending {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+.ck-status-pending::before {
+  content: '';
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background: #fbbf24;
+  animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ─── Mobile Drawer Overlay ───────────────────────────────── */
+.ck-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 40;
+}
+.ck-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--ck-sidebar-width);
+  max-width: 85vw;
+  z-index: 50;
+  background: #050505;
+  border-right: 1px solid var(--ck-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ck-drawer::before {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(220, 38, 38, 0.5), transparent);
+  pointer-events: none;
+}
+.ck-drawer-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ck-radius-sm);
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  color: var(--ck-primary-light);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+.ck-drawer-close:hover {
+  background: rgba(220, 38, 38, 0.2);
+  border-color: var(--ck-primary);
+  color: white;
+}
+
+/* ─── Responsive: Data Table → Card on Mobile ─────────────── */
+@media (max-width: 767px) {
+  .ck-table-responsive thead {
+    display: none;
+  }
+  .ck-table-responsive tbody tr {
+    display: flex;
+    flex-direction: column;
+    padding: var(--ck-space-md);
+    margin-bottom: var(--ck-space-sm);
+    border: 1px solid var(--ck-border);
+    border-radius: var(--ck-radius-md);
+    background: var(--ck-bg-card);
+    gap: 0.375rem;
+  }
+  .ck-table-responsive tbody tr:hover {
+    border-color: rgba(220, 38, 38, 0.3);
+  }
+  .ck-table-responsive td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.375rem 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+    font-size: 0.8125rem !important;
+    gap: 0.75rem;
+  }
+  .ck-table-responsive td:last-child {
+    border-bottom: none !important;
+  }
+  .ck-table-responsive td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ck-primary-light);
+    font-family: 'Share Tech Mono', monospace;
+    flex-shrink: 0;
+    min-width: 5.5rem;
+  }
+  .ck-table-responsive td .ck-status {
+    font-size: 0.625rem;
+  }
+  .ck-table-responsive tbody tr:nth-child(even) td {
+    background: transparent;
+  }
+
+  /* Filter bar stacks full-width */
+  .ck-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ck-filter-bar .ck-input,
+  .ck-filter-bar .ck-filter-select {
+    min-width: auto;
+    width: 100%;
+  }
+
+  /* Pagination mobile */
+  .ck-pagination {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .ck-page-btn {
+    min-width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+/* ─── Breakpoint: 320px (Small phones) ────────────────────── */
+@media (max-width: 359px) {
+  .ck-cards-grid {
+    grid-template-columns: 1fr;
+    gap: var(--ck-space-md);
+  }
+  .ck-page-btn {
+    min-width: 2rem;
+    height: 2rem;
+    font-size: 0.625rem;
+    padding: 0 0.25rem;
+  }
+}
+
+/* ─── Breakpoint: 480px ───────────────────────────────────── */
+@media (min-width: 360px) and (max-width: 479px) {
+  .ck-cards-grid {
+    grid-template-columns: 1fr;
+    gap: var(--ck-space-md);
+  }
+}
+
+/* ─── Breakpoint: 480–767px ───────────────────────────────── */
+@media (min-width: 480px) and (max-width: 767px) {
+  .ck-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--ck-space-md);
+  }
+}
+
+/* ─── Breakpoint: 768–1023px (Tablet) ─────────────────────── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .ck-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--ck-space-lg);
+  }
+}
+
+/* ─── Breakpoint: 1024–1439px (Desktop) ───────────────────── */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .ck-cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--ck-space-lg);
+  }
+}
+
+/* ─── Breakpoint: 1440px+ (Large Desktop) ─────────────────── */
+@media (min-width: 1440px) {
+  .ck-cards-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--ck-space-lg);
+  }
+}
+
+/* ─── Table wrapper: horizontal containment ───────────────── */
+.ck-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--ck-radius-md);
+  border: 1px solid var(--ck-border);
+  background: var(--ck-bg-card);
+}
+@media (min-width: 768px) {
+  .ck-table-wrapper {
+    overflow-x: visible;
+  }
+}
+
+/* ─── Body scroll lock when drawer is open ────────────────── */
+body.drawer-open {
+  overflow: hidden;
+  touch-action: none;
+}

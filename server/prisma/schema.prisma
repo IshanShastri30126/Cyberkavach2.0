@@ -164,6 +164,7 @@ model Event {
   maxTeamSize          Int?
   isPublished          Boolean   @default(false)
   isDraft              Boolean   @default(true)
+  isApproved           Boolean   @default(true)
   maxCapacity          Int?
   eventType            String    @default("general")
   googleFormUrl        String?
