@@ -177,9 +177,24 @@ export default function TeamsPage() {
                   {searchResults.length > 0 && (
                     <div className="mt-2 rounded-xl border border-[var(--ck-border)] max-h-40 overflow-y-auto" style={{ background: "var(--ck-bg)" }}>
                       {searchResults.map((u) => (
-                        <button key={u.id} type="button" onClick={() => { setSelectedMembers([...selectedMembers, u]); setSearchResults([]); setMemberSearch(""); }}
-                          className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--ck-bg-secondary)] transition" style={{ color: "var(--ck-text)" }}>
-                          {u.name} ({u.email})
+                        <button key={u.id} type="button" 
+                          disabled={!u.isApproved || !u.isActive}
+                          onClick={() => { 
+                            setSelectedMembers([...selectedMembers, u]); 
+                            setSearchResults([]); 
+                            setMemberSearch(""); 
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-xs hover:bg-[var(--ck-bg-secondary)] transition flex items-center justify-between border-b border-[var(--ck-border)] last:border-b-0 ${
+                            (!u.isApproved || !u.isActive) ? "opacity-55 cursor-not-allowed" : ""
+                          }`} 
+                          style={{ color: "var(--ck-text)" }}
+                        >
+                          <span className="truncate">{u.name} ({u.email})</span>
+                          {!u.isApproved ? (
+                            <span className="text-[9px] text-amber-500 font-mono font-bold shrink-0 ml-2">PENDING APPROVAL (CANNOT ADD)</span>
+                          ) : !u.isActive ? (
+                            <span className="text-[9px] text-red-500 font-mono font-bold shrink-0 ml-2">INACTIVE (CANNOT ADD)</span>
+                          ) : null}
                         </button>
                       ))}
                     </div>

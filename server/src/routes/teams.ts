@@ -39,6 +39,42 @@ router.post("/", authenticate, validate(createTeamSchema), auditLog("TEAM_CREATE
       res.status(400).json({ error: `Maximum team size is ${event.maxTeamSize}` }); return;
     }
 
+    // ─── Strict member validation: All members must be registered, approved, and active ───
+    if (memberIds && memberIds.length > 0) {
+      const members = await prisma.user.findMany({
+        where: { id: { in: memberIds } },
+        select: { id: true, name: true, email: true, isApproved: true, isActive: true },
+      });
+
+      // Check all IDs exist
+      const foundIds = new Set(members.map(m => m.id));
+      const missingIds = memberIds.filter((id: string) => !foundIds.has(id));
+      if (missingIds.length > 0) {
+        res.status(400).json({ 
+          error: `The following member IDs are not registered in the system: ${missingIds.join(", ")}. All team members must be registered users.` 
+        }); 
+        return;
+      }
+
+      // Check all are approved
+      const unapproved = members.filter(m => !m.isApproved);
+      if (unapproved.length > 0) {
+        res.status(400).json({ 
+          error: `The following members are not yet approved: ${unapproved.map(m => m.name || m.email).join(", ")}. All team members must have approved accounts.` 
+        }); 
+        return;
+      }
+
+      // Check all are active
+      const inactive = members.filter(m => !m.isActive);
+      if (inactive.length > 0) {
+        res.status(400).json({ 
+          error: `The following members have inactive accounts: ${inactive.map(m => m.name || m.email).join(", ")}. All team members must have active accounts.` 
+        }); 
+        return;
+      }
+    }
+
     const teamCode = generateTeamCode();
     const qrData = JSON.stringify({ teamCode, eventId, type: "team_checkin" });
     const qrCode = await QRCode.toDataURL(qrData, { width: 400, margin: 2 });
@@ -232,6 +268,26 @@ router.patch("/:id", authenticate, auditLog("TEAM_UPDATED"), async (req: Request
     if (name) await prisma.team.update({ where: { id: team.id }, data: { name } });
 
     if (addMemberIds?.length) {
+      // Validate all new members exist, are approved, and active
+      const newMembers = await prisma.user.findMany({
+        where: { id: { in: addMemberIds } },
+        select: { id: true, name: true, email: true, isApproved: true, isActive: true },
+      });
+
+      const foundIds = new Set(newMembers.map(m => m.id));
+      const missingIds = addMemberIds.filter((id: string) => !foundIds.has(id));
+      if (missingIds.length > 0) {
+        res.status(400).json({ error: `Some members are not registered in the system. All team members must be registered users.` }); return;
+      }
+      const unapproved = newMembers.filter((m: any) => !m.isApproved);
+      if (unapproved.length > 0) {
+        res.status(400).json({ error: `The following members are not yet approved: ${unapproved.map((m: any) => m.name || m.email).join(", ")}` }); return;
+      }
+      const inactive = newMembers.filter((m: any) => !m.isActive);
+      if (inactive.length > 0) {
+        res.status(400).json({ error: `The following members have inactive accounts: ${inactive.map((m: any) => m.name || m.email).join(", ")}` }); return;
+      }
+
       for (const mId of addMemberIds) {
         await prisma.teamMember.upsert({
           where: { teamId_userId: { teamId: team.id, userId: mId } },

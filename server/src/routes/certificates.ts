@@ -46,6 +46,38 @@ router.post("/templates", authenticate, requireMinRole("STUDENT_COORDINATOR"), u
   } catch (err) { console.error("[Certs] Template error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
 
+// ─── PUT /api/certificates/templates/:id — Update template ────
+router.put("/templates/:id", authenticate, requireMinRole("STUDENT_COORDINATOR"), upload.single("template"), async (req: Request, res: Response) => {
+  try {
+    const { name, fields } = req.body;
+    const template = await prisma.certificateTemplate.findUnique({ where: { id: req.params.id } });
+    if (!template) { res.status(404).json({ error: "Template not found" }); return; }
+
+    const updateData: any = {
+      name: name || template.name,
+    };
+
+    if (req.file) {
+      if (template.fileUrl) {
+        const oldPath = path.resolve(template.fileUrl.startsWith("/") ? template.fileUrl.slice(1) : template.fileUrl);
+        if (fs.existsSync(oldPath)) { fs.unlinkSync(oldPath); }
+      }
+      updateData.fileUrl = `/uploads/${req.file.filename}`;
+      updateData.fileType = req.file.mimetype.includes("pdf") ? "pdf" : "png";
+    }
+
+    if (fields) {
+      updateData.fields = JSON.parse(fields);
+    }
+
+    const updated = await prisma.certificateTemplate.update({
+      where: { id: req.params.id },
+      data: updateData,
+    });
+    res.json({ template: updated });
+  } catch (err) { console.error("[Certs] Update template error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
 // ─── GET /api/certificates/templates ────────────────────────
 router.get("/templates", authenticate, requireMinRole("TECH"), async (_req: Request, res: Response) => {
   try {
@@ -320,10 +352,10 @@ function generateCertificateHTML(data: {
     const bgUrl = data.template.fileUrl ? `http://localhost:${process.env.PORT || 4000}${data.template.fileUrl}` : null;
     let html = `<!DOCTYPE html><html><head><meta charset="utf-8">
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,500;0,700;1,500;1,700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,500;0,700;1,500;1,700&family=Share+Tech+Mono&display=swap');
         body { margin: 0; padding: 0; background: #fff; }
         .cert-container { width: 800px; height: 560px; position: relative; overflow: hidden; background: ${bgUrl ? `url('${bgUrl}') center/cover no-repeat` : '#ffffff'}; }
-        .node { position: absolute; transform-origin: top left; }
+        .node { position: absolute; transform-origin: top left; box-sizing: border-box; }
       </style></head><body><div class="cert-container">`;
       
     nodes.forEach((node: any) => {
@@ -341,14 +373,24 @@ function generateCertificateHTML(data: {
         text = text.replace(/\[Event Date\]/gi, data.eventDate);
         content = text.replace(/\n/g, '<br>');
         
-        const fontFamily = node.fontFamily === "serif" ? "'Playfair Display', serif" : "'Inter', sans-serif";
+        const fontFamily = node.fontFamily === "serif" 
+          ? "'Playfair Display', serif" 
+          : node.fontFamily === "mono" 
+          ? "'Share Tech Mono', monospace" 
+          : "'Inter', sans-serif";
         const textAlign = node.align || "left";
         const color = node.fill || "#000000";
         const fontSize = node.fontSize || 16;
-        const fontStyle = node.fontStyle === "italic" ? "italic" : "normal";
-        const width = node.width ? `${node.width}px` : "auto";
         
-        html += `<div class="node" style="left: ${node.x}px; top: ${node.y}px; width: ${width}; color: ${color}; font-size: ${fontSize}px; font-family: ${fontFamily}; text-align: ${textAlign}; font-style: ${fontStyle}; transform: rotate(${node.rotation || 0}deg) scale(${node.scaleX || 1}, ${node.scaleY || 1});">${content}</div>`;
+        const isItalic = node.fontStyle?.includes("italic");
+        const isBold = node.fontStyle?.includes("bold");
+        const fontStyle = isItalic ? "italic" : "normal";
+        const fontWeight = isBold ? "bold" : "normal";
+        
+        const width = node.width ? `${node.width}px` : "auto";
+        const tracking = node.tracking ? `letter-spacing: ${node.tracking}px;` : "";
+        
+        html += `<div class="node" style="left: ${node.x}px; top: ${node.y}px; width: ${width}; color: ${color}; font-size: ${fontSize}px; font-family: ${fontFamily}; text-align: ${textAlign}; font-style: ${fontStyle}; font-weight: ${fontWeight}; ${tracking} transform: rotate(${node.rotation || 0}deg) scale(${node.scaleX || 1}, ${node.scaleY || 1});">${content}</div>`;
       } else if (node.type === "image") {
         const width = node.width ? `${node.width}px` : "auto";
         const height = node.height ? `${node.height}px` : "auto";
@@ -356,9 +398,13 @@ function generateCertificateHTML(data: {
           <img src="${node.src}" style="width: ${width}; height: ${height}; object-fit: contain;" />
         </div>`;
       } else if (node.type === "shape") {
-         const width = node.width ? `${node.width}px` : "auto";
-         const height = node.height ? `${node.height}px` : "auto";
-         html += `<div class="node" style="left: ${node.x}px; top: ${node.y}px; width: ${width}; height: ${height}; background-color: #000; opacity: 0.8; transform: rotate(${node.rotation || 0}deg) scale(${node.scaleX || 1}, ${node.scaleY || 1});"></div>`;
+        const width = node.width ? `${node.width}px` : "auto";
+        const height = node.height ? `${node.height}px` : "auto";
+        const fill = node.fill || "transparent";
+        const stroke = node.stroke ? `border: ${node.strokeWidth || 1}px solid ${node.stroke};` : "";
+        const borderRadius = node.radius ? `border-radius: ${node.radius}px;` : "";
+        const opacity = node.opacity !== undefined ? `opacity: ${node.opacity};` : "";
+        html += `<div class="node" style="left: ${node.x}px; top: ${node.y}px; width: ${width}; height: ${height}; background-color: ${fill}; ${stroke} ${borderRadius} ${opacity} transform: rotate(${node.rotation || 0}deg) scale(${node.scaleX || 1}, ${node.scaleY || 1});"></div>`;
       }
     });
     

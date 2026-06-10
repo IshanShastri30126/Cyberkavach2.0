@@ -237,7 +237,7 @@ export default function AttendancePage() {
           padding: 6px 12px !important;
           border-radius: 4px !important;
           font-size: 11px !important;
-          font-family: 'Share Tech Mono', monospace !important;
+          font-family: 'Plus Jakarta Sans', sans-serif !important;
           cursor: pointer !important;
           text-transform: uppercase !important;
           box-shadow: 0 0 5px rgba(220,38,38,0.2) !important;
@@ -251,7 +251,7 @@ export default function AttendancePage() {
           color: white !important;
           padding: 6px !important;
           border-radius: 4px !important;
-          font-family: 'Share Tech Mono', monospace !important;
+          font-family: 'Plus Jakarta Sans', sans-serif !important;
           font-size: 11px !important;
           outline: none !important;
         }

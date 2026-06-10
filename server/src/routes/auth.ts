@@ -171,11 +171,19 @@ router.post("/login", validate(loginSchema), async (req: Request, res: Response)
       data: { action: "USER_LOGIN", userId: user.id, context: { email } },
     });
 
-    // Send login notification email
-    sendLoginNotificationEmail(
-      { name: user.name, email: user.email },
-      { ip: req.ip || req.socket.remoteAddress, userAgent: req.headers["user-agent"] }
-    ).catch((err) => console.error("[Auth] Login email failed:", err));
+    // Send login notification email only on FIRST login
+    if (!user.firstLoginEmailSent) {
+      sendLoginNotificationEmail(
+        { name: user.name, email: user.email },
+        { ip: req.ip || req.socket.remoteAddress, userAgent: req.headers["user-agent"] }
+      ).catch((err) => console.error("[Auth] Login email failed:", err));
+
+      // Mark first login email as sent
+      prisma.user.update({
+        where: { id: user.id },
+        data: { firstLoginEmailSent: true },
+      }).catch((err) => console.error("[Auth] Failed to update firstLoginEmailSent:", err));
+    }
 
     res.json({
       user: {
@@ -253,11 +261,18 @@ router.post("/google", async (req: Request, res: Response) => {
       data: { action: "USER_LOGIN_GOOGLE", userId: user.id, context: { email } },
     });
 
-    // Send login notification email for Google login
-    sendLoginNotificationEmail(
-      { name: user.name, email: user.email },
-      { ip: req.ip || req.socket.remoteAddress, userAgent: req.headers["user-agent"] }
-    ).catch((err) => console.error("[Auth] Google login email failed:", err));
+    // Send login notification email only on FIRST login (for Google login)
+    if (!user.firstLoginEmailSent) {
+      sendLoginNotificationEmail(
+        { name: user.name, email: user.email },
+        { ip: req.ip || req.socket.remoteAddress, userAgent: req.headers["user-agent"] }
+      ).catch((err) => console.error("[Auth] Google login email failed:", err));
+
+      prisma.user.update({
+        where: { id: user.id },
+        data: { firstLoginEmailSent: true },
+      }).catch((err) => console.error("[Auth] Failed to update firstLoginEmailSent:", err));
+    }
 
     res.json({
       user: {

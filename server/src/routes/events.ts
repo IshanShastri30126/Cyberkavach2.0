@@ -384,22 +384,58 @@ router.post("/:id/register", authenticate, auditLog("EVENT_REGISTRATION"), async
       // Add creator as member
       await prisma.teamMember.create({ data: { teamId, userId } });
       
-      // If team members are provided by email, try to add them if they exist
-      if (teamMembers && Array.isArray(teamMembers)) {
-        for (const email of teamMembers) {
-          const user = await prisma.user.findUnique({ where: { email } });
-          if (user) {
-             // Check if user is already registered
-             const existingReg = await prisma.eventRegistration.findUnique({ where: { userId_eventId: { userId: user.id, eventId } } });
-             if (!existingReg) {
-                await prisma.teamMember.create({ data: { teamId, userId: user.id } });
-                await prisma.eventRegistration.create({ data: { userId: user.id, eventId, teamId } });
-                sendEventRegistrationEmail({ name: user.name, email: user.email }, {
-                  title: event.title,
-                  startDate: event.startDate,
-                  venue: event.venue
-                }).catch(err => console.error("[Events] Teammate email failed:", err));
-             }
+      // If team members are provided by email, validate ALL exist as registered+approved+active users
+      if (teamMembers && Array.isArray(teamMembers) && teamMembers.length > 0) {
+        // First validate ALL emails before adding any
+        const memberUsers = await Promise.all(
+          teamMembers.map(async (email: string) => {
+            const memberUser = await prisma.user.findUnique({ 
+              where: { email: email.trim() },
+              select: { id: true, name: true, email: true, isApproved: true, isActive: true }
+            });
+            return { email: email.trim(), user: memberUser };
+          })
+        );
+
+        // Check for unregistered emails
+        const unregistered = memberUsers.filter(m => !m.user);
+        if (unregistered.length > 0) {
+          res.status(400).json({ 
+            error: `The following emails are not registered in the system: ${unregistered.map(m => m.email).join(", ")}. All team members must be registered users.` 
+          }); 
+          return;
+        }
+
+        // Check for unapproved users
+        const unapproved = memberUsers.filter(m => m.user && !m.user.isApproved);
+        if (unapproved.length > 0) {
+          res.status(400).json({ 
+            error: `The following members are not yet approved: ${unapproved.map(m => m.user!.name || m.email).join(", ")}. All team members must have approved accounts.` 
+          }); 
+          return;
+        }
+
+        // Check for inactive users
+        const inactive = memberUsers.filter(m => m.user && !m.user.isActive);
+        if (inactive.length > 0) {
+          res.status(400).json({ 
+            error: `The following members have inactive accounts: ${inactive.map(m => m.user!.name || m.email).join(", ")}. All team members must have active accounts.` 
+          }); 
+          return;
+        }
+
+        // All validated — now add them
+        for (const { user: memberUser } of memberUsers) {
+          if (!memberUser) continue;
+          const existingReg = await prisma.eventRegistration.findUnique({ where: { userId_eventId: { userId: memberUser.id, eventId } } });
+          if (!existingReg) {
+            await prisma.teamMember.create({ data: { teamId, userId: memberUser.id } });
+            await prisma.eventRegistration.create({ data: { userId: memberUser.id, eventId, teamId } });
+            sendEventRegistrationEmail({ name: memberUser.name, email: memberUser.email }, {
+              title: event.title,
+              startDate: event.startDate,
+              venue: event.venue
+            }).catch(err => console.error("[Events] Teammate email failed:", err));
           }
         }
       }

@@ -497,70 +497,72 @@ export const KonvaEditor = ({
 
   return (
     <div className="relative w-full h-full flex justify-center items-center overflow-hidden" tabIndex={0}>
-      <div style={{ width: 800, height: 560, transform: `scale(${scale})`, transformOrigin: 'center' }} className="shadow-2xl border border-zinc-800 bg-white">
-        <Stage
-          width={800}
-          height={560}
-          onMouseDown={checkDeselect}
-          onTouchStart={checkDeselect}
-          id="certificate-stage"
-        >
-          <Layer>
-            <Rect id="bg-rect" width={800} height={560} fill={backgroundColor} />
-            {bgImg && (
-              <KonvaImage id="bg-img" image={bgImg} width={800} height={560} x={0} y={0} listening={false} />
-            )}
-            
-            {nodes.map((node, i) => {
-              const onChange = (newAttrs: CanvasNode) => {
-                const newNodes = nodes.slice();
-                newNodes[i] = newAttrs;
-                setNodes(newNodes);
-              };
-              const onSelect = () => setSelectedId(node.id);
-              const isSelected = node.id === selectedId;
+      <div style={{ width: 800 * scale, height: 560 * scale }} className="relative flex items-center justify-center overflow-hidden shrink-0">
+        <div style={{ width: 800, height: 560, transform: `scale(${scale})`, transformOrigin: 'top left', position: 'absolute', top: 0, left: 0 }} className="shadow-2xl border border-zinc-800 bg-white">
+          <Stage
+            width={800}
+            height={560}
+            onMouseDown={checkDeselect}
+            onTouchStart={checkDeselect}
+            id="certificate-stage"
+          >
+            <Layer>
+              <Rect id="bg-rect" width={800} height={560} fill={backgroundColor} />
+              {bgImg && (
+                <KonvaImage id="bg-img" image={bgImg} width={800} height={560} x={0} y={0} listening={false} />
+              )}
+              
+              {nodes.map((node, i) => {
+                const onChange = (newAttrs: CanvasNode) => {
+                  const newNodes = nodes.slice();
+                  newNodes[i] = newAttrs;
+                  setNodes(newNodes);
+                };
+                const onSelect = () => setSelectedId(node.id);
+                const isSelected = node.id === selectedId;
 
-              if (node.type === "text") {
-                return (
-                  <EditableText
-                    key={node.id}
-                    node={node}
-                    isSelected={isSelected}
-                    onSelect={onSelect}
-                    onChange={onChange}
-                    eventTitle={eventTitle}
-                    eventDate={eventDate}
-                    themeColor={themeColor}
-                  />
-                );
-              } else if (node.type === "image") {
-                return (
-                  <URLImage
-                    key={node.id}
-                    node={node}
-                    isSelected={isSelected}
-                    onSelect={onSelect}
-                    onChange={onChange}
-                    themeColor={themeColor}
-                    isCropping={isSelected && isCropping}
-                    onCropEnd={(crop) => setTempCropData(crop)}
-                  />
-                );
-              } else if (node.type === "shape") {
-                return (
-                  <ShapeNode
-                    key={node.id}
-                    node={node}
-                    isSelected={isSelected}
-                    onSelect={onSelect}
-                    onChange={onChange}
-                  />
-                );
-              }
-              return null;
-            })}
-          </Layer>
-        </Stage>
+                if (node.type === "text") {
+                  return (
+                    <EditableText
+                      key={node.id}
+                      node={node}
+                      isSelected={isSelected}
+                      onSelect={onSelect}
+                      onChange={onChange}
+                      eventTitle={eventTitle}
+                      eventDate={eventDate}
+                      themeColor={themeColor}
+                    />
+                  );
+                } else if (node.type === "image") {
+                  return (
+                    <URLImage
+                      key={node.id}
+                      node={node}
+                      isSelected={isSelected}
+                      onSelect={onSelect}
+                      onChange={onChange}
+                      themeColor={themeColor}
+                      isCropping={isSelected && isCropping}
+                      onCropEnd={(crop) => setTempCropData(crop)}
+                    />
+                  );
+                } else if (node.type === "shape") {
+                  return (
+                    <ShapeNode
+                      key={node.id}
+                      node={node}
+                      isSelected={isSelected}
+                      onSelect={onSelect}
+                      onChange={onChange}
+                    />
+                  );
+                }
+                return null;
+              })}
+            </Layer>
+          </Stage>
+        </div>
       </div>
     </div>
   );

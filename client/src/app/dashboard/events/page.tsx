@@ -983,7 +983,7 @@ export default function EventsPage() {
               onClick={() => isCore ? router.push(`/dashboard/events/${event.id}`) : undefined}
               className={`ck-card overflow-hidden ${isCore ? "cursor-pointer hover:ring-2 hover:ring-indigo-500/30" : ""} transition-all`}>
               {/* Poster/Header */}
-              <div className="h-36 bg-gradient-to-br from-red-900/10 to-black flex items-center justify-center relative overflow-hidden">
+              <div className="h-44 bg-gradient-to-br from-red-900/10 to-black flex items-center justify-center relative overflow-hidden">
                 {event.posterUrl ? (
                   <img src={`${SERVER_BASE_URL}${event.posterUrl}`} alt={event.title} className="w-full h-full object-cover" />
                 ) : (

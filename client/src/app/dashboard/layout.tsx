@@ -10,9 +10,18 @@ import {
   Shield, LayoutDashboard, Calendar, Users, Award,
   FileCheck, BarChart3, CheckSquare, LogOut,
   ChevronLeft, ChevronRight, ClipboardList, Bell, Menu, X, UsersRound,
-  User, Settings
+  User, Settings, Check, CheckCheck, Terminal
 } from "lucide-react";
 import { DefaultAvatar } from "@/components/default-avatar";
+
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
 
 interface NavItem { label: string; href: string; icon: React.ReactNode; roles?: Role[]; }
 
@@ -59,24 +68,75 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState<Notification[]>([]);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) router.push("/");
   }, [user, isLoading, router]);
 
-  // Fetch unread notifications count
+  // Fetch unread notifications list & poll for real-time updates
   useEffect(() => {
     if (!token) return;
-    const fetchCount = async () => {
+    
+    const fetchNotifications = async () => {
       try {
-        const data = await api<{ count: number }>("/notifications/unread-count", { token });
-        setUnreadCount(data.count);
+        const data = await api<{ notifications: Notification[] }>("/notifications", { token });
+        const unread = data.notifications.filter((n) => !n.isRead);
+        setUnreadNotifications(unread);
+        setUnreadCount(unread.length);
+        
+        // Show the pop-out modal on first load of the dashboard in this session
+        if (unread.length > 0 && !sessionStorage.getItem("ck_notified")) {
+          setShowNotificationModal(true);
+          sessionStorage.setItem("ck_notified", "true");
+        }
       } catch { /* ignore */ }
     };
-    fetchCount();
-    const interval = setInterval(fetchCount, 30000); // poll every 30s
+    
+    fetchNotifications();
+    
+    // Set up polling interval to get new ones
+    const interval = setInterval(async () => {
+      try {
+        const data = await api<{ notifications: Notification[] }>("/notifications", { token });
+        const unread = data.notifications.filter((n) => !n.isRead);
+        setUnreadNotifications((prev) => {
+          // If there are new unread notifications that were not in prev, we trigger the modal!
+          const prevIds = new Set(prev.map(p => p.id));
+          const hasNew = unread.some(u => !prevIds.has(u.id));
+          if (hasNew) {
+            setShowNotificationModal(true);
+          }
+          return unread;
+        });
+        setUnreadCount(unread.length);
+      } catch { /* ignore */ }
+    }, 30000);
+
     return () => clearInterval(interval);
   }, [token]);
+
+  const markNotificationRead = async (id: string) => {
+    try {
+      await api(`/notifications/${id}/read`, { method: "PATCH", token: token || undefined });
+      setUnreadNotifications((prev) => prev.filter((n) => n.id !== id));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const markAllNotificationsRead = async () => {
+    try {
+      await api("/notifications/read-all", { method: "PATCH", token: token || undefined });
+      setUnreadNotifications([]);
+      setUnreadCount(0);
+      setShowNotificationModal(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // Body scroll lock when mobile drawer is open
   useEffect(() => {
@@ -272,15 +332,148 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {filteredNav.find((n) => n.href === pathname)?.label || "Dashboard"}
             </h2>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard/notifications" className="relative p-2 rounded-lg hover:bg-[var(--ck-border)] transition">
+          <div className="flex items-center gap-2 relative">
+            <button 
+              onClick={() => setShowNotificationModal(prev => !prev)} 
+              className="relative p-2 rounded-lg hover:bg-[var(--ck-border)] transition cursor-pointer"
+              aria-label="View notifications"
+            >
               <Bell className="w-5 h-5" style={{ color: "var(--ck-text-secondary)" }} />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-[0_0_8px_rgba(239,68,68,0.6)]">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
-            </Link>
+            </button>
+
+            {/* Notification Popover Dropdown */}
+            <AnimatePresence>
+              {showNotificationModal && (
+                <>
+                  {/* Transparent click detector backdrop */}
+                  <div
+                    onClick={() => setShowNotificationModal(false)}
+                    className="fixed inset-0 z-40"
+                  />
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-2 w-80 sm:w-96 ck-glass z-50 flex flex-col shadow-2xl border border-red-500/20 rounded-xl overflow-hidden"
+                    style={{
+                      background: "rgba(6, 6, 6, 0.95)",
+                      backdropFilter: "blur(20px)",
+                      WebkitBackdropFilter: "blur(20px)",
+                    }}
+                  >
+                    {/* Header */}
+                    <div className="p-4 border-b border-red-500/15 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Terminal className="w-4 h-4 text-red-500 animate-pulse" />
+                        <span className="text-xs uppercase tracking-widest text-red-400 font-bold">
+                          System Broadcast Feed
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setShowNotificationModal(false)}
+                        className="p-1 rounded-md border border-red-950/40 bg-black/40 text-zinc-400 hover:text-red-400 hover:border-red-500/30 transition-all cursor-pointer"
+                        aria-label="Close feed"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Action bar if there are unread notifications */}
+                    {unreadNotifications.length > 0 && (
+                      <div className="px-4 py-2 bg-red-950/10 border-b border-red-950/25 flex justify-between items-center">
+                        <span className="text-[10px] text-zinc-400 uppercase tracking-wider">
+                          Unread Batch: {unreadNotifications.length}
+                        </span>
+                        <button
+                          onClick={markAllNotificationsRead}
+                          className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold text-red-400 hover:text-red-300 hover:underline transition-all cursor-pointer"
+                        >
+                          <CheckCheck className="w-3.5 h-3.5" /> Acknowledge All
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Feed Content */}
+                    <div className="max-h-[320px] overflow-y-auto p-3 space-y-2 custom-scrollbar">
+                      <AnimatePresence initial={false}>
+                        {unreadNotifications.length > 0 ? (
+                          unreadNotifications.map((notif) => (
+                            <motion.div
+                              key={notif.id}
+                              layout
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, x: 50, transition: { duration: 0.15 } }}
+                              className="overflow-hidden"
+                            >
+                              <div className="p-3 rounded-lg bg-black/60 border border-red-950/40 hover:border-red-500/30 transition-all flex gap-3 relative group overflow-hidden">
+                                {/* Pulse indicator on the left side of notification */}
+                                <div className="absolute top-0 bottom-0 left-0 w-[3px] bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-2 mb-1">
+                                    <span className="font-semibold text-xs text-zinc-200 tracking-wide">
+                                      {notif.title}
+                                    </span>
+                                    <span className="text-[9px] text-zinc-500 shrink-0 whitespace-nowrap mt-0.5">
+                                      {new Date(notif.createdAt).toLocaleTimeString([], {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-zinc-400 leading-relaxed font-sans">
+                                    {notif.message}
+                                  </p>
+                                </div>
+
+                                <div className="flex flex-col justify-center shrink-0">
+                                  <button
+                                    onClick={() => markNotificationRead(notif.id)}
+                                    className="p-1 rounded bg-red-950/30 border border-red-950/60 hover:bg-red-500/20 hover:border-red-500/40 text-red-400 transition-all cursor-pointer"
+                                    title="Mark as read"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))
+                        ) : (
+                          /* Secure Matrix Empty State */
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.2 }}
+                            className="py-8 flex flex-col items-center justify-center text-center px-4 select-none"
+                          >
+                            <div className="relative mb-3">
+                              <div className="absolute -inset-1.5 bg-red-500/10 rounded-full blur-lg animate-pulse" />
+                              <div className="relative w-12 h-12 rounded-full border border-red-500/30 bg-red-950/20 flex items-center justify-center text-red-500/70">
+                                <Shield className="w-6 h-6" />
+                              </div>
+                            </div>
+                            <h4 className="text-[9px] uppercase tracking-widest text-zinc-400 font-bold mb-1">
+                              Secure Matrix Active
+                            </h4>
+                            <p className="text-[11px] text-zinc-500 max-w-[200px] leading-relaxed">
+                              All feeds verified. Zero unacknowledged system broadcasts detected.
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
@@ -289,6 +482,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </motion.div>
       </main>
+
     </div>
   );
 }

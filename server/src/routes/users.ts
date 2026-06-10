@@ -53,15 +53,13 @@ router.get("/search", authenticate, async (req: Request, res: Response) => {
     }
     const users = await prisma.user.findMany({
       where: {
-        isApproved: true,
-        isActive: true,
         OR: [
           { name: { contains: q as string, mode: "insensitive" } },
           { email: { contains: q as string, mode: "insensitive" } },
           { studentId: { contains: q as string, mode: "insensitive" } },
         ],
       },
-      select: { id: true, name: true, email: true, role: true, studentId: true },
+      select: { id: true, name: true, email: true, role: true, studentId: true, isApproved: true, isActive: true },
       take: 20,
     });
     res.json({ users });

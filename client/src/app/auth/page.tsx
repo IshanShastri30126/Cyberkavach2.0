@@ -236,7 +236,7 @@ export default function LoginPage() {
         </div>
 
         {/* Demo accounts hint */}
-        {isLogin && (
+        {isLogin && process.env.NODE_ENV !== "production" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-4 text-center">
             <p className="text-xs text-slate-500">Demo: faculty@cyberkavach.com / password123</p>
           </motion.div>

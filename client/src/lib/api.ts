@@ -65,12 +65,12 @@ export async function api<T = unknown>(endpoint: string, options: FetchOptions =
 }
 
 // For file uploads (no Content-Type header — let browser set boundary)
-export async function apiUpload<T = unknown>(endpoint: string, formData: FormData, token?: string): Promise<T> {
+export async function apiUpload<T = unknown>(endpoint: string, formData: FormData, token?: string, method = "POST"): Promise<T> {
   const cookieToken = Cookies.get("accessToken");
   const activeToken = cookieToken || token;
 
   const res = await fetch(`${API_BASE}${endpoint}`, {
-    method: "POST",
+    method,
     credentials: "include",
     headers: {
       ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {}),

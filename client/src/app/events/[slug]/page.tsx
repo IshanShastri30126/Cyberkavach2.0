@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, SERVER_BASE_URL } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { motion } from "framer-motion";
-import { Calendar, MapPin, Clock, Users, Tag, Shield, AlertCircle, CheckCircle, UserPlus, Mail, Copy, ExternalLink } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Calendar, MapPin, Clock, Users, Tag, Shield, AlertCircle, CheckCircle, UserPlus, Mail, Copy, ExternalLink, Eye, X, Search } from "lucide-react";
 
 interface EventDetail {
   id: string; title: string; description?: string; venue?: string;
@@ -43,7 +43,26 @@ export default function PublicEventPage() {
     teamName: ""
   });
   const [inviteCode, setInviteCode] = useState<string | null>(null);
-  const [teammateEmails, setTeammateEmails] = useState("");
+  const [showPosterLightbox, setShowPosterLightbox] = useState(false);
+
+  // Teammate search states
+  const [memberSearch, setMemberSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedMembers, setSelectedMembers] = useState<any[]>([]);
+
+  // Toast notification state
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+
+  const showToast = useCallback((message: string, type: "success" | "error" | "info" = "info") => {
+    setToast({ message, type });
+  }, []);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   useEffect(() => {
     if (user) {
@@ -91,6 +110,21 @@ export default function PublicEventPage() {
     load();
   }, [slug, token]);
 
+  const searchMembers = async (q: string) => {
+    setMemberSearch(q);
+    if (q.length < 2) { setSearchResults([]); return; }
+    try {
+      const data = await api<{ users: any[] }>(`/users/search?q=${q}`, { token: token || undefined });
+      // Only show users who are approved, not current user, and not already selected
+      setSearchResults(data.users.filter((u) => u.id !== user?.id && !selectedMembers.find((m) => m.id === u.id)));
+    } catch { setSearchResults([]); }
+  };
+
+  // Sync estimated count with selected members
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, teammateCount: selectedMembers.length.toString() }));
+  }, [selectedMembers]);
+
   const handleRegisterClick = () => {
     if (!token) { router.push(`/?redirect=/events/${slug}`); return; }
     setFormData({
@@ -105,7 +139,9 @@ export default function PublicEventPage() {
       teamName: ""
     });
     setInviteCode(null);
-    setTeammateEmails("");
+    setSelectedMembers([]);
+    setMemberSearch("");
+    setSearchResults([]);
     setShowFormModal(true);
   };
 
@@ -121,10 +157,10 @@ export default function PublicEventPage() {
       window.open(event!.googleFormUrl || undefined, "_blank", "noopener,noreferrer");
       await api(`/events/${event!.id}/register`, { method: "POST", token });
       setRegistered(true);
-      alert("Registration confirmed and welcome email sent! Status updated.");
+      showToast("Registration confirmed! Welcome email dispatched.", "success");
     } catch (err) {
       console.error("Google form background register failed:", err);
-      alert("Failed to confirm registration in the portal.");
+      showToast("Failed to confirm registration in the portal.", "error");
     } finally {
       setRegistering(false);
     }
@@ -147,8 +183,8 @@ export default function PublicEventPage() {
         if (formData.teamName) {
           body.teamName = formData.teamName;
         }
-        if (teammateEmails.trim()) {
-          body.teamMembers = teammateEmails.split(",").map(email => email.trim()).filter(Boolean);
+        if (selectedMembers.length > 0) {
+          body.teamMembers = selectedMembers.map(m => m.email);
         }
       }
       const response = await api<{ registration: any; teamCode?: string }>(
@@ -159,9 +195,9 @@ export default function PublicEventPage() {
       if (response.teamCode) {
         setInviteCode(response.teamCode);
       }
-      alert("Registered successfully!");
+      showToast("Registered successfully!", "success");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Registration failed");
+      showToast(err instanceof Error ? err.message : "Registration failed", "error");
     } finally {
       setRegistering(false);
     }
@@ -180,9 +216,9 @@ export default function PublicEventPage() {
       setRegistered(true);
       setInviteCode(joinTeamCode);
       setShowJoinTeamModal(false);
-      alert("Joined team successfully!");
+      showToast("Joined team successfully!", "success");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to join team");
+      showToast(err instanceof Error ? err.message : "Failed to join team", "error");
     } finally {
       setRegistering(false);
     }
@@ -239,7 +275,7 @@ export default function PublicEventPage() {
         <img 
           src={event.posterUrl ? `${SERVER_BASE_URL}${event.posterUrl}` : "/images/cyber_banner.png"} 
           alt={event.title}
-          className="absolute inset-0 w-full h-full object-cover opacity-40 z-0" 
+          className="absolute inset-0 w-full h-full object-cover opacity-80 z-0" 
         />
         
         <div className="absolute inset-0 flex items-end z-20">
@@ -250,15 +286,25 @@ export default function PublicEventPage() {
                 <span className="text-sm font-semibold text-red-400 font-mono tracking-wider uppercase">CyberKavach Club</span>
               </div>
               <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 uppercase font-mono tracking-tighter">{event.title}</h1>
-              {event.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {event.tags.map((tag) => (
-                    <span key={tag} className="px-3 py-1 rounded-full text-xs font-semibold bg-red-950/50 text-red-400 border border-red-900/30 backdrop-blur-sm uppercase font-mono">
-                      <Tag className="w-3 h-3 inline mr-1 text-red-500" />{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-3">
+                {event.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {event.tags.map((tag) => (
+                      <span key={tag} className="px-3 py-1 rounded-full text-xs font-semibold bg-red-950/50 text-red-400 border border-red-900/30 backdrop-blur-sm uppercase font-mono">
+                        <Tag className="w-3 h-3 inline mr-1 text-red-500" />{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {event.posterUrl && (
+                  <button
+                    onClick={() => setShowPosterLightbox(true)}
+                    className="px-3 py-1.5 rounded-full text-xs font-mono font-bold bg-black/60 border border-zinc-800 hover:border-red-500/50 hover:text-red-400 transition-all flex items-center gap-1.5 w-fit"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> View Full Poster
+                  </button>
+                )}
+              </div>
             </motion.div>
           </div>
         </div>
@@ -610,10 +656,10 @@ export default function PublicEventPage() {
                   </div>
 
                   {event && event.maxTeamSize && event.maxTeamSize > 1 && (
-                    <div className="p-4 rounded-xl border border-red-900/30 bg-red-950/10 space-y-4">
-                      <p className="text-xs font-semibold text-red-400 font-mono uppercase tracking-wider">Team Configurations Required</p>
+                    <div className="p-4 rounded-xl border border-red-900/30 bg-red-950/10 space-y-4 font-mono">
+                      <p className="text-xs font-semibold text-red-400 uppercase tracking-wider">Team Configurations Required</p>
                       <div>
-                        <label className="ck-label font-mono text-[10px]">Team Name *</label>
+                        <label className="ck-label text-[10px]">Team Name *</label>
                         <input 
                           className="ck-input" 
                           placeholder="e.g. Hex Hunters" 
@@ -623,24 +669,69 @@ export default function PublicEventPage() {
                         />
                       </div>
                       <div>
-                        <label className="ck-label font-mono text-[10px]">Teammate Emails (comma-separated)</label>
-                        <input 
-                          className="ck-input" 
-                          placeholder="e.g. member1@gmail.com, member2@gmail.com" 
-                          value={teammateEmails} 
-                          onChange={(e) => setTeammateEmails(e.target.value)} 
-                        />
+                        <label className="ck-label text-[10px]">Add Teammates * (Must be registered & approved)</label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                          <input 
+                            className="ck-input pl-9" 
+                            placeholder="Search teammate by name or email..." 
+                            value={memberSearch} 
+                            onChange={(e) => searchMembers(e.target.value)} 
+                          />
+                        </div>
+                        {searchResults.length > 0 && (
+                          <div className="mt-2 rounded-xl border border-red-900/30 max-h-40 overflow-y-auto bg-black/95 z-50 relative">
+                            {searchResults.map((u) => (
+                              <button 
+                                key={u.id} 
+                                type="button" 
+                                onClick={() => { 
+                                  setSelectedMembers([...selectedMembers, u]); 
+                                  setSearchResults([]); 
+                                  setMemberSearch(""); 
+                                }}
+                                className="w-full text-left px-4 py-2.5 text-xs hover:bg-red-950/20 text-slate-300 border-b border-red-950/20 last:border-b-0 flex items-center justify-between"
+                              >
+                                <span className="truncate">{u.name} ({u.email})</span>
+                                {u.isApproved ? (
+                                  <span className="text-[9px] text-emerald-400 shrink-0 font-bold ml-2">APPROVED</span>
+                                ) : (
+                                  <span className="text-[9px] text-amber-500 shrink-0 font-bold ml-2">PENDING</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {selectedMembers.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            {selectedMembers.map((m) => (
+                              <span key={m.id} className="ck-badge ck-badge-primary flex items-center gap-1.5 py-1 text-xs">
+                                <span>{m.name}</span>
+                                {!m.isApproved && (
+                                  <span className="text-[8px] text-amber-500 font-bold bg-amber-500/10 px-1 rounded border border-amber-500/25">UNAPPROVED</span>
+                                )}
+                                <button 
+                                  type="button" 
+                                  onClick={() => setSelectedMembers(selectedMembers.filter((s) => s.id !== m.id))} 
+                                  className="hover:text-red-400 p-0.5"
+                                >
+                                  ✕
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div>
-                        <label className="ck-label font-mono text-[10px]">Estimated Teammates Count</label>
+                        <label className="ck-label text-[10px]">Estimated Teammates Count</label>
                         <input 
                           type="number" 
                           min="1" 
                           max={event.maxTeamSize - 1} 
-                          className="ck-input" 
+                          className="ck-input cursor-not-allowed bg-zinc-900 border-zinc-800 text-zinc-400" 
                           placeholder="Number of teammates" 
                           value={formData.teammateCount} 
-                          onChange={(e) => setFormData({ ...formData, teammateCount: e.target.value })} 
+                          disabled
                         />
                       </div>
                     </div>
@@ -683,6 +774,45 @@ export default function PublicEventPage() {
           </motion.div>
         </div>
       )}
+
+      {/* Poster Lightbox Modal */}
+      {showPosterLightbox && event.posterUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-md animate-fade-in" onClick={() => setShowPosterLightbox(false)}>
+          <div className="relative max-w-4xl max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setShowPosterLightbox(false)} className="absolute top-4 right-4 z-10 p-2 rounded-lg bg-black/80 hover:bg-red-500/20 text-red-500 border border-zinc-800"><X className="w-5 h-5" /></button>
+            <img 
+              src={`${SERVER_BASE_URL}${event.posterUrl}`} 
+              alt={event.title} 
+              className="max-w-full max-h-[85vh] object-contain rounded-xl border border-zinc-800 shadow-2xl" 
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className={`fixed bottom-5 right-5 z-[100] flex items-center gap-3 p-4 rounded-xl border shadow-2xl ${
+              toast.type === "success" 
+                ? "bg-emerald-950/90 border-emerald-500/50 text-emerald-200" 
+                : toast.type === "error" 
+                ? "bg-red-950/90 border-red-500/50 text-red-200" 
+                : "bg-zinc-900/90 border-zinc-700/50 text-zinc-200"
+            }`}
+          >
+            {toast.type === "success" && <CheckCircle className="w-5 h-5 text-emerald-400" />}
+            {toast.type === "error" && <AlertCircle className="w-5 h-5 text-red-400" />}
+            <span className="text-sm font-mono tracking-tight">{toast.message}</span>
+            <button onClick={() => setToast(null)} className="ml-2 hover:opacity-80 p-0.5 rounded bg-black/30">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
