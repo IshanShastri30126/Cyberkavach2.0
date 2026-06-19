@@ -1027,14 +1027,8 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden selection:bg-red-500/30 font-sans relative">
       
-      {/* 3D Cyber Background Grid */}
-      <div className="fixed inset-0 z-0 pointer-events-none perspective-1000 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black z-10" />
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-red-600/10 blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/10 blur-[120px]" />
-        <CyberBackground3D />
-        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay z-20" />
-      </div>
+      {/* Solid Dark Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none bg-black" />
 
       {/* Navbar */}
       <header className="relative z-50 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto border-b border-white/10">

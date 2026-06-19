@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { authenticate, requireRole, requireMinRole } from "../middlewares/auth";
 import { auditLog } from "../middlewares/auditLog";
+import { upload } from "../middlewares/upload";
 
 import { redisGet, redisSet, redisDel } from "../lib/redis";
 
@@ -69,6 +70,21 @@ router.post("/landing-team", authenticate, requireMinRole("STUDENT_COORDINATOR")
   } catch (err) {
     console.error("[Settings] Update landing team error:", err);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/settings/upload — Upload media asset for landing page settings (SC+ only)
+router.post("/upload", authenticate, requireMinRole("STUDENT_COORDINATOR"), upload.single("file"), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: "No file uploaded" });
+      return;
+    }
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.json({ fileUrl });
+  } catch (err) {
+    console.error("[Settings] Upload error:", err);
+    res.status(550).json({ error: "Internal server error" });
   }
 });
 

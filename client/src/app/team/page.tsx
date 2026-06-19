@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Shield, ArrowLeft, Users, Mail, Info, LogIn } from "lucide-react";
+import { Shield, ArrowLeft, Users, Mail, Info, LogIn, Eye } from "lucide-react";
 import { api } from "@/lib/api";
 import { CyberKavachLogo } from "@/components/CyberKavachLogo";
 
@@ -435,7 +435,7 @@ export default function TeamPage() {
                   </div>
                   
                   {/* Avatar wrapper with visual scanner */}
-                  <div className="relative z-10 w-28 h-28 mx-auto mb-5 rounded-full overflow-hidden border-2 border-white/10 group-hover:border-red-500 transition-colors shadow-2xl">
+                  <Link href={`/team/${member.id}`} className="block relative z-10 w-28 h-28 mx-auto mb-5 rounded-full overflow-hidden border-2 border-white/10 group-hover:border-red-500 transition-colors shadow-2xl">
                     {member.imageUrl ? (
                       <img src={member.imageUrl} alt={member.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     ) : (
@@ -446,11 +446,20 @@ export default function TeamPage() {
                     
                     {/* Floating neon overlay overlay line */}
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-red-500/20 to-transparent translate-y-[-100%] group-hover:translate-y-[100%] transition-transform duration-1000 ease-in-out" />
-                  </div>
+                  </Link>
 
-                  <h3 className="relative z-10 text-xl font-bold mb-1 tracking-tight text-white group-hover:text-red-400 transition-colors">{member.name}</h3>
+                  <Link href={`/team/${member.id}`}>
+                    <h3 className="relative z-10 text-xl font-bold mb-1 tracking-tight text-white group-hover:text-red-400 transition-colors">{member.name}</h3>
+                  </Link>
                   <p className="relative z-10 text-[10px] font-mono text-red-500 bg-red-950/20 border border-red-900/30 rounded-full inline-block px-3 py-0.5 uppercase tracking-widest mb-3">{member.role.replace("_", " ")}</p>
-                  <p className="relative z-10 text-xs text-zinc-400 leading-normal mb-6">{member.designation}</p>
+                  <p className="relative z-10 text-xs text-zinc-400 leading-normal mb-2">{member.designation}</p>
+
+                  {/* View Profile Action Link */}
+                  <div className="relative z-10 mb-4 flex justify-center">
+                    <Link href={`/team/${member.id}`} className="text-[9px] font-mono text-zinc-500 hover:text-red-400 uppercase tracking-widest flex items-center gap-1 transition-colors">
+                      <Eye className="w-3 h-3" /> View Profile
+                    </Link>
+                  </div>
                 </div>
 
                 {/* Social Clearance Profile triggers */}
