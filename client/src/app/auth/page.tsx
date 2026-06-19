@@ -1,15 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Shield, Mail, Lock, User, ArrowRight, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
+import { CosmicBackground } from "@/components/CosmicBackground";
+import { api } from "@/lib/api";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const { login, loginWithGoogle, register, user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTarget = searchParams?.get("redirect") || "/dashboard";
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -24,10 +28,33 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [registeredPending, setRegisteredPending] = useState(false);
 
+  // Club namespaces support
+  const [clubs, setClubs] = useState<Array<{ id: string; name: string; slug: string }>>([]);
+  const [selectedClubId, setSelectedClubId] = useState("");
+  const [registerNewClub, setRegisterNewClub] = useState(false);
+  const [newClubName, setNewClubName] = useState("");
+  const [newClubSlug, setNewClubSlug] = useState("");
+
+  // Fetch all existing clubs
+  useEffect(() => {
+    async function loadClubs() {
+      try {
+        const data = await api<{ clubs: Array<{ id: string; name: string; slug: string }> }>("/clubs");
+        setClubs(data.clubs || []);
+        if (data.clubs && data.clubs.length > 0) {
+          setSelectedClubId(data.clubs[0].id);
+        }
+      } catch (err) {
+        console.error("Failed to load clubs", err);
+      }
+    }
+    loadClubs();
+  }, []);
+
   // If already logged in, redirect
-  React.useEffect(() => {
-    if (user && (user.isApproved || user.role === "GUEST")) router.push("/dashboard");
-  }, [user, router]);
+  useEffect(() => {
+    if (user && (user.isApproved || user.role === "GUEST")) router.push(redirectTarget);
+  }, [user, router, redirectTarget]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +63,7 @@ export default function LoginPage() {
     try {
       if (isLogin) {
         await login(email, password);
-        router.push("/dashboard");
+        router.push(redirectTarget);
       } else {
         await register(name, email, password, {
           studentId,
@@ -44,6 +71,10 @@ export default function LoginPage() {
           department,
           institute,
           semester,
+          ...(registerNewClub
+            ? { newClubName, newClubSlug }
+            : { clubId: selectedClubId }
+          )
         });
         setRegisteredPending(true);
       }
@@ -62,11 +93,12 @@ export default function LoginPage() {
 
   if (registeredPending) {
     return (
-      <div className="ck-gradient-bg min-h-screen flex items-center justify-center p-4 relative">
-        <div className="absolute top-20 left-20 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" />
+      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-black text-white">
+        <CosmicBackground />
+        <div className="absolute top-20 left-20 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md relative z-10">
-          <div className="ck-glass rounded-2xl p-8 shadow-2xl text-center border-red-900">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-red-900 to-red-600 flex items-center justify-center mx-auto mb-4 shadow-[0_0_15px_rgba(220,38,38,0.5)]">
+          <div className="ck-glass rounded-2xl p-8 shadow-2xl text-center border-purple-900">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-900 via-purple-700 to-cyan-500 flex items-center justify-center mx-auto mb-4 shadow-[0_0_15px_rgba(167,139,250,0.5)] border border-purple-500/30">
               <CheckCircle className="w-8 h-8 text-white" />
             </div>
             <h2 className="text-xl font-bold text-white mb-2">Registration Successful!</h2>
@@ -84,12 +116,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="ck-gradient-bg min-h-screen flex items-center justify-center p-4 relative">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-black text-white">
+      <CosmicBackground />
       <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: "easeOut" }} className={`w-full ${isLogin ? "max-w-md" : "max-w-xl"} transition-all duration-300 relative z-10`}>
         {/* Logo */}
         <div className="text-center mb-8">
           <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.5 }} className="inline-flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-900 to-red-600 flex items-center justify-center shadow-[0_0_20px_rgba(220,38,38,0.6)] border border-red-500">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-900 via-purple-700 to-cyan-500 flex items-center justify-center shadow-[0_0_20px_rgba(167,139,250,0.6)] border border-purple-500">
               <Shield className="w-7 h-7 text-white" />
             </div>
             <span className="text-2xl font-bold text-white tracking-widest font-mono">CYBERKAVACH</span>
@@ -99,14 +132,14 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="ck-glass rounded-xl p-8 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-50" />
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-50" />
           
           {/* Tab Toggle */}
-          <div className="flex gap-1 p-1 rounded-lg bg-black/40 mb-6 border border-red-900/30">
-            <button onClick={() => { setIsLogin(true); resetForm(); }} className={`flex-1 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 font-mono tracking-widest ${isLogin ? "bg-red-900/80 text-white shadow-[0_0_10px_rgba(220,38,38,0.4)] border border-red-500/50" : "text-slate-400 hover:text-red-400"}`}>
+          <div className="flex gap-1 p-1 rounded-lg bg-black/40 mb-6 border border-purple-900/30">
+            <button onClick={() => { setIsLogin(true); resetForm(); }} className={`flex-1 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 font-mono tracking-widest ${isLogin ? "bg-purple-950/80 text-white shadow-[0_0_10px_rgba(167,139,250,0.4)] border border-purple-500/50" : "text-slate-400 hover:text-purple-400"}`}>
               SIGN IN
             </button>
-            <button onClick={() => { setIsLogin(false); resetForm(); }} className={`flex-1 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 font-mono tracking-widest ${!isLogin ? "bg-red-900/80 text-white shadow-[0_0_10px_rgba(220,38,38,0.4)] border border-red-500/50" : "text-slate-400 hover:text-red-400"}`}>
+            <button onClick={() => { setIsLogin(false); resetForm(); }} className={`flex-1 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 font-mono tracking-widest ${!isLogin ? "bg-purple-950/80 text-white shadow-[0_0_10px_rgba(167,139,250,0.4)] border border-purple-500/50" : "text-slate-400 hover:text-purple-400"}`}>
               REGISTER
             </button>
           </div>
@@ -119,14 +152,14 @@ export default function LoginPage() {
                     <div>
                       <label className="ck-label">Full Name</label>
                       <div className="ck-input-icon-wrapper">
-                        <User className="w-4 h-4 text-red-500/70" />
+                        <User className="w-4 h-4 text-purple-500/70" />
                         <input type="text" placeholder="USER IDENTIFIER" value={name} onChange={(e) => setName(e.target.value)} required={!isLogin} className="ck-input ck-input-with-icon" />
                       </div>
                     </div>
                     <div>
                       <label className="ck-label">Student ID</label>
                       <div className="ck-input-icon-wrapper">
-                        <User className="w-4 h-4 text-red-500/70" />
+                        <User className="w-4 h-4 text-purple-500/70" />
                         <input type="text" placeholder="e.g. 22CS101" value={studentId} onChange={(e) => setStudentId(e.target.value)} required={!isLogin} className="ck-input ck-input-with-icon" />
                       </div>
                     </div>
@@ -135,14 +168,14 @@ export default function LoginPage() {
                     <div>
                       <label className="ck-label">Department</label>
                       <div className="ck-input-icon-wrapper">
-                        <User className="w-4 h-4 text-red-500/70" />
+                        <User className="w-4 h-4 text-purple-500/70" />
                         <input type="text" placeholder="e.g. CSE, IT" value={department} onChange={(e) => setDepartment(e.target.value)} required={!isLogin} className="ck-input ck-input-with-icon" />
                       </div>
                     </div>
                     <div>
                       <label className="ck-label">Institute</label>
                       <div className="ck-input-icon-wrapper">
-                        <User className="w-4 h-4 text-red-500/70" />
+                        <User className="w-4 h-4 text-purple-500/70" />
                         <input type="text" placeholder="e.g. CSPIT, DEPSTAR" value={institute} onChange={(e) => setInstitute(e.target.value)} required={!isLogin} className="ck-input ck-input-with-icon" />
                       </div>
                     </div>
@@ -151,17 +184,76 @@ export default function LoginPage() {
                     <div>
                       <label className="ck-label">Semester</label>
                       <div className="ck-input-icon-wrapper">
-                        <User className="w-4 h-4 text-red-500/70" />
+                        <User className="w-4 h-4 text-purple-500/70" />
                         <input type="text" placeholder="e.g. 1-8" value={semester} onChange={(e) => setSemester(e.target.value)} required={!isLogin} className="ck-input ck-input-with-icon" />
                       </div>
                     </div>
                     <div>
                       <label className="ck-label">Contact Info / Phone</label>
                       <div className="ck-input-icon-wrapper">
-                        <User className="w-4 h-4 text-red-500/70" />
+                        <User className="w-4 h-4 text-purple-500/70" />
                         <input type="text" placeholder="Phone number" value={phone} onChange={(e) => setPhone(e.target.value)} required={!isLogin} className="ck-input ck-input-with-icon" />
                       </div>
                     </div>
+                  </div>
+
+                  <div className="border-t border-purple-900/30 pt-4 mt-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="ck-label font-bold text-purple-400">Club Namespace</label>
+                      <button
+                        type="button"
+                        onClick={() => setRegisterNewClub(!registerNewClub)}
+                        className="text-xs text-cyan-400 hover:text-cyan-300 font-mono"
+                      >
+                        {registerNewClub ? "Join Existing Club" : "Register New Club"}
+                      </button>
+                    </div>
+
+                    {!registerNewClub ? (
+                      <div>
+                        <label className="ck-label text-xs">Select Club to Join</label>
+                        <select
+                          value={selectedClubId}
+                          onChange={(e) => setSelectedClubId(e.target.value)}
+                          className="ck-input w-full bg-black/60 border border-purple-900/50 rounded-lg p-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+                        >
+                          {clubs.map((c) => (
+                            <option key={c.id} value={c.id} className="bg-black text-white">
+                              {c.name} ({c.slug})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="ck-label text-xs">New Club Name</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Cyber Security Club"
+                            value={newClubName}
+                            onChange={(e) => {
+                              setNewClubName(e.target.value);
+                              // Auto-generate slug
+                              setNewClubSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-"));
+                            }}
+                            required={!isLogin && registerNewClub}
+                            className="ck-input"
+                          />
+                        </div>
+                        <div>
+                          <label className="ck-label text-xs">New Club Slug</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. csc"
+                            value={newClubSlug}
+                            onChange={(e) => setNewClubSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                            required={!isLogin && registerNewClub}
+                            className="ck-input font-mono"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -169,7 +261,7 @@ export default function LoginPage() {
               <div>
                 <label className="ck-label">{isLogin ? "Email" : "College Email ID"}</label>
                 <div className="ck-input-icon-wrapper">
-                  <Mail className="w-4 h-4 text-red-500/70" />
+                  <Mail className="w-4 h-4 text-purple-500/70" />
                   <input type="email" placeholder="NODE@NETWORK.LOCAL" value={email} onChange={(e) => setEmail(e.target.value)} required className="ck-input ck-input-with-icon" />
                 </div>
               </div>
@@ -177,9 +269,9 @@ export default function LoginPage() {
               <div>
                 <label className="ck-label">Password</label>
                 <div className="ck-input-icon-wrapper">
-                  <Lock className="w-4 h-4 text-red-500/70" />
+                  <Lock className="w-4 h-4 text-purple-500/70" />
                   <input type={showPassword ? "text" : "password"} placeholder="[ENCRYPTED_KEY]" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="ck-input ck-input-with-icon" style={{ paddingRight: "3rem" }} />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500/70 hover:text-red-400 transition z-10">
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-500/70 hover:text-purple-400 transition z-10">
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
@@ -219,7 +311,7 @@ export default function LoginPage() {
                     setLoading(true);
                     try {
                       await loginWithGoogle(credentialResponse.credential);
-                      router.push("/dashboard");
+                      router.push(redirectTarget);
                     } catch (err: any) {
                       setError(err.message || "Google Login Failed");
                     } finally {
@@ -235,13 +327,21 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Demo accounts hint */}
-        {isLogin && process.env.NODE_ENV !== "production" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-4 text-center">
-            <p className="text-xs text-slate-500">Demo: faculty@cyberkavach.com / password123</p>
-          </motion.div>
-        )}
+
       </motion.div>
     </div>
   );
 }
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        <div className="w-10 h-10 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+

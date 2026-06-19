@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { api, SERVER_BASE_URL } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { motion } from "framer-motion";
-import { Award, Download, ExternalLink, Calendar } from "lucide-react";
+import { Award, Download, ExternalLink, Calendar, Trophy, Shield, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 const LinkedinIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -94,7 +94,7 @@ const CertificateTiltCard = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       style={tiltStyle}
-      className="ck-card p-6 bg-black/40 border-red-950/35 flex flex-col hover:border-red-500/40 transition-all cursor-pointer relative overflow-hidden transform-style-3d select-none"
+      className="ck-holo-card p-6 flex flex-col cursor-pointer select-none"
     >
       {/* Holographic light reflect overlay */}
       {isHovered && (
@@ -108,8 +108,8 @@ const CertificateTiltCard = ({
 
       {/* Card Header */}
       <div className="flex items-start justify-between mb-4 z-10">
-        <div className="p-3 bg-red-950/30 rounded-xl border border-red-900/30">
-          <Award className="w-6 h-6 text-red-500" />
+        <div className="p-3 bg-[#CCFF00]/10 rounded-xl border border-[#CCFF00]/25">
+          <Award className="w-6 h-6" style={{ color: "#CCFF00" }} />
         </div>
         <span className="text-[10px] font-mono px-2 py-1 bg-zinc-900 text-slate-300 rounded border border-zinc-800">
           {cert.uniqueCode}
@@ -122,7 +122,7 @@ const CertificateTiltCard = ({
           {cert.event.title}
         </h3>
         <p className="text-[10px] text-slate-400 flex items-center gap-2 mb-4">
-          <Calendar className="w-3.5 h-3.5 text-red-500" />
+          <Calendar className="w-3.5 h-3.5" style={{ color: "#FF4D00" }} />
           {new Date(cert.event.startDate).toLocaleDateString("en-IN", {
             day: "numeric", month: "short", year: "numeric"
           })}
@@ -130,7 +130,7 @@ const CertificateTiltCard = ({
       </div>
 
       {/* Sharing controls */}
-      <div className="flex flex-col gap-2 pt-4 border-t border-red-950/40 mt-4 z-10">
+      <div className="flex flex-col gap-2 pt-4 border-t border-zinc-850 mt-4 z-10">
         <div className="flex items-center gap-2">
           <button
             onClick={() => handleDownload(cert)}
@@ -188,28 +188,48 @@ export default function MyCertificatesPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-20">
-        <div className="w-10 h-10 border-3 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
+      <div className="flex flex-col items-center justify-center py-32 gap-4">
+        <div className="ck-spinner" />
+        <p className="text-xs font-mono uppercase tracking-widest text-zinc-500 animate-pulse">LOADING CERTIFICATE VAULT...</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white font-mono uppercase">My Certificates</h1>
-        <p className="mt-2 text-sm text-slate-400">View and download certificates from events you've participated in.</p>
+      <div className="flex items-start justify-between flex-wrap gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Trophy className="w-3.5 h-3.5" style={{ color: "#CCFF00" }} />
+            <span className="text-[10px] font-mono uppercase tracking-widest font-bold animate-pulse" style={{ color: "#CCFF00" }}>ACHIEVEMENT VAULT</span>
+          </div>
+          <h1 className="text-3xl font-black font-mono tracking-tighter text-white">MY <span className="ck-gradient-text">CERTIFICATES</span></h1>
+          <p className="mt-1 text-xs text-zinc-500 font-mono">
+            {certificates.length > 0 ? <span style={{ color: "#CCFF00" }}>{certificates.length} ACHIEVEMENT{certificates.length > 1 ? "S" : ""} UNLOCKED</span> : "NO ACHIEVEMENTS YET"}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#CCFF00]/15 bg-[#CCFF00]/5 text-[#CCFF00]">
+          <Sparkles className="w-4 h-4 text-[#CCFF00] animate-pulse" />
+          <span className="text-xs font-mono font-bold uppercase">VERIFIED SECURE CERTS</span>
+        </div>
       </div>
 
       {certificates.length === 0 ? (
-        <div className="ck-card p-12 text-center bg-black/40 border-red-950/30">
-          <Award className="w-16 h-16 mx-auto mb-4 text-slate-600" />
-          <h3 className="text-lg font-bold text-white mb-2 font-mono uppercase tracking-widest">No Certificates Yet</h3>
-          <p className="text-sm text-slate-400 max-w-md mx-auto">
-            You haven't earned any certificates yet. Participate in events to earn certificates!
-          </p>
-          <Link href="/events" className="ck-btn-primary inline-flex mt-6">
-            Explore Events
+        <div className="flex flex-col items-center justify-center py-24 gap-5">
+          <div className="relative">
+            <div className="absolute inset-0 bg-[#CCFF00]/10 rounded-full blur-3xl animate-pulse" />
+            <div className="relative w-24 h-24 rounded-3xl border border-zinc-800 bg-gradient-to-br from-zinc-950/30 to-black flex items-center justify-center">
+              <Trophy className="w-10 h-10" style={{ color: "#CCFF00" }} />
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-black uppercase tracking-widest text-zinc-400 font-mono">VAULT EMPTY</p>
+            <p className="text-xs text-zinc-650 mt-1 max-w-xs font-mono">No achievements yet. Participate in events to earn verified certificates.</p>
+          </div>
+          <Link href="/dashboard/events"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#FF4D00] to-[#CCFF00] text-black text-xs font-black uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_15px_rgba(204,255,0,0.2)]"
+          >
+            EXPLORE EVENTS
           </Link>
         </div>
       ) : (

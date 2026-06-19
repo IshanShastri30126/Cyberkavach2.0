@@ -3,11 +3,25 @@ import prisma from "../lib/prisma";
 import { authenticate, requireRole, requireMinRole } from "../middlewares/auth";
 import { auditLog } from "../middlewares/auditLog";
 
+import { redisGet, redisSet, redisDel } from "../lib/redis";
+
 const router = Router();
 
 // GET /api/settings/landing-team — Get public landing page team members
 router.get("/landing-team", async (req: Request, res: Response) => {
   try {
+    // Try to retrieve from Redis cache first
+    const cachedTeam = await redisGet("LANDING_PAGE_TEAM");
+    if (cachedTeam) {
+      try {
+        const teamObj = JSON.parse(cachedTeam);
+        res.json({ team: teamObj });
+        return;
+      } catch (e) {
+        console.warn("[Settings] Parsing cached team failed:", e);
+      }
+    }
+
     const setting = await prisma.clubSettings.findUnique({
       where: { key: "LANDING_PAGE_TEAM" }
     });
@@ -20,12 +34,12 @@ router.get("/landing-team", async (req: Request, res: Response) => {
       { id: "4", name: "Bob Media", role: "SOCIAL_MEDIA", designation: "Social Media Manager", imageUrl: "https://i.pravatar.cc/150?u=4" }
     ];
 
-    if (!setting) {
-      res.json({ team: defaultTeam });
-      return;
-    }
+    const finalTeam = setting ? setting.value : defaultTeam;
 
-    res.json({ team: setting.value });
+    // Cache the team value in Redis for 1 hour (3600s)
+    await redisSet("LANDING_PAGE_TEAM", JSON.stringify(finalTeam), 3600);
+
+    res.json({ team: finalTeam });
   } catch (err) {
     console.error("[Settings] Get landing team error:", err);
     res.status(500).json({ error: "Internal server error" });
@@ -47,6 +61,9 @@ router.post("/landing-team", authenticate, requireMinRole("STUDENT_COORDINATOR")
       update: { value: team },
       create: { key: "LANDING_PAGE_TEAM", value: team }
     });
+
+    // Invalidate the cache
+    await redisDel("LANDING_PAGE_TEAM");
 
     res.json({ team: setting.value, message: "Landing page team updated successfully" });
   } catch (err) {

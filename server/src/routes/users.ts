@@ -7,6 +7,25 @@ import { sendAccountApprovedEmail, sendRoleUpdatedEmail } from "../lib/emailServ
 import { upload } from "../middlewares/upload";
 import bcrypt from "bcrypt";
 import { Role } from "@prisma/client";
+import redis, { redisGet, redisSet, redisDel } from "../lib/redis";
+
+async function clearUsersCache() {
+  try {
+    const redisClient = redis;
+    if (redisClient) {
+      const keys = await redisClient.keys("users:list:*");
+      if (keys && keys.length > 0) {
+        await Promise.all(keys.map(key => redisClient.del(key)));
+      }
+    }
+    await redisDel("analytics:operations");
+    await redisDel("analytics:club");
+    await redisDel("analytics:top3");
+    await redisDel("analytics:coordinator-activity");
+  } catch (err) {
+    console.warn("Failed to clear users cache:", err);
+  }
+}
 
 const router = Router();
 
@@ -14,6 +33,14 @@ const router = Router();
 router.get("/", authenticate, requireMinRole("STUDENT_COORDINATOR"), async (req: Request, res: Response) => {
   try {
     const { search, role, approved } = req.query;
+    
+    const cacheKey = `users:list:${search || "none"}:${role || "all"}:${approved || "all"}`;
+    const cached = await redisGet(cacheKey);
+    if (cached) {
+      res.json(JSON.parse(cached));
+      return;
+    }
+
     const where: any = {};
 
     if (search) {
@@ -36,6 +63,8 @@ router.get("/", authenticate, requireMinRole("STUDENT_COORDINATOR"), async (req:
       },
       orderBy: { createdAt: "desc" },
     });
+    
+    await redisSet(cacheKey, JSON.stringify({ users }), 300); // 5 minutes cache
     res.json({ users });
   } catch (err) {
     console.error("[Users] List error:", err);
@@ -97,6 +126,8 @@ router.patch("/:id/approve", authenticate, requireMinRole("STUDENT_COORDINATOR")
       console.error("[Users] Account approved email failed:", err)
     );
 
+    await clearUsersCache();
+
     res.json({ user: updated });
   } catch (err) {
     console.error("[Users] Approve error:", err);
@@ -135,6 +166,8 @@ router.patch("/:id/role", authenticate, requireRole("FACULTY", "STUDENT_COORDINA
       role
     ).catch((err) => console.error("[Users] Role update email failed:", err));
 
+    await clearUsersCache();
+
     res.json({ user: updated });
   } catch (err) {
     console.error("[Users] Role update error:", err);
@@ -156,6 +189,9 @@ router.patch("/:id/deactivate", authenticate, requireRole("FACULTY", "STUDENT_CO
       data: { isActive: false },
       select: { id: true, name: true, email: true, isActive: true },
     });
+    
+    await clearUsersCache();
+    
     res.json({ user: updated });
   } catch (err) {
     console.error("[Users] Deactivate error:", err);
@@ -172,6 +208,9 @@ router.patch("/:id/activate", authenticate, requireRole("FACULTY", "STUDENT_COOR
       data: { isActive: true },
       select: { id: true, name: true, email: true, isActive: true },
     });
+    
+    await clearUsersCache();
+    
     res.json({ user: updated });
   } catch (err) {
     console.error("[Users] Activate error:", err);
@@ -237,6 +276,8 @@ router.patch("/profile", authenticate, upload.single("avatar"), async (req: Requ
     await prisma.auditLog.create({
       data: { action: "USER_PROFILE_UPDATED", userId },
     });
+
+    await clearUsersCache();
 
     res.json({ user: updated });
   } catch (err) {

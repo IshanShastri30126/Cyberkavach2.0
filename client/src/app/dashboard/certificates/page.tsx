@@ -188,15 +188,17 @@ export default function CertificatesPage() {
       setGenerationProgress((prev) => {
         const next = Math.min(prev + Math.random() * 12, 88);
         if (logIdx < logSteps.length && Math.random() > 0.4) {
-          setGenerationLogs((prevLogs) => [...prevLogs, logSteps[logIdx]]);
+          const stepLog = logSteps[logIdx];
+          setGenerationLogs((prevLogs) => [...prevLogs, stepLog]);
           logIdx++;
         } else if (Math.random() > 0.7) {
           // Add dynamic recipient logging
           const randomRec = recipients[Math.floor(Math.random() * recipients.length)];
           if (randomRec) {
+            const recLog = `[GEN_PROC] PROCESSING CREDENTIAL FOR: ${randomRec.name.toUpperCase()}`;
             setGenerationLogs((prevLogs) => [
               ...prevLogs,
-              `[GEN_PROC] PROCESSING CREDENTIAL FOR: ${randomRec.name.toUpperCase()}`
+              recLog
             ]);
           }
         }
@@ -274,144 +276,116 @@ export default function CertificatesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* High-Tech Dashboard Header */}
-      <div className="relative overflow-hidden rounded-2xl border border-red-500/10 bg-gradient-to-r from-red-950/20 via-black to-zinc-950/40 p-6 shadow-2xl">
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-40 animate-pulse" />
-        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-red-500/5 blur-3xl" />
-        
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
-              <span className="w-2 h-2 rounded-full bg-red-500 absolute" />
-              <span className="text-[10px] font-mono uppercase tracking-widest text-red-500 font-bold bg-red-950/40 px-2 py-0.5 rounded border border-red-900/30">
-                VAULT SECURE SYNCED
-              </span>
-            </div>
-            
-            <h1 className="text-3xl sm:text-4xl font-extrabold font-mono tracking-tighter uppercase text-white group flex items-center gap-1">
-              <span className="glitch-text cursor-default" data-text="CREDENTIAL_GEN">CREDENTIAL_GEN</span>
-            </h1>
-            <p className="mt-1 text-xs sm:text-sm font-mono" style={{ color: "var(--ck-text-secondary)" }}>
-              SECURE_TEMPLATE_VAULT // BULK_ISSUANCE_UNIT // CLASSIFIED_CORE
-            </p>
-          </div>
+    <div className="flex flex-col gap-6">
 
-          {/* Diagnostic Widget */}
-          <div className="hidden sm:flex items-center gap-4 px-4 py-2.5 rounded-xl border border-zinc-800 bg-black/60 font-mono text-[10px]">
-            <div className="flex flex-col">
-              <span className="text-zinc-500 uppercase tracking-widest">SYSTEM_TIME</span>
-              <span className="text-red-400 font-bold">{systemTime || "LOADING SYSTEM TIME..."}</span>
-            </div>
-            <div className="w-[1px] h-8 bg-zinc-800" />
-            <div className="flex flex-col">
-              <span className="text-zinc-500 uppercase tracking-widest">TEMPLATES_LOADED</span>
-              <span className="text-white font-bold">{templates.length} UNITS</span>
-            </div>
-            <div className="w-[1px] h-8 bg-zinc-800" />
-            <div className="flex flex-col">
-              <span className="text-zinc-500 uppercase tracking-widest">ACTIVE_VAULT</span>
-              <span className="text-emerald-400 font-bold flex items-center gap-1">
-                <Activity className="w-3 h-3 animate-pulse" /> RUNNING
-              </span>
-            </div>
+      {/* ── Page Header ── */}
+      <div className="flex items-start justify-between flex-wrap gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: "#CCFF00", boxShadow: "0 0 8px #CCFF00" }} />
+            <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color: "#CCFF00" }}>CREDENTIAL ENGINE · ONLINE</span>
           </div>
+          <h1 className="text-3xl font-black tracking-tight text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            CERTIFICATE <span style={{ color: "#CCFF00" }}>GEN</span>
+          </h1>
+          <p className="text-[11px] font-mono mt-1" style={{ color: "#4B5563" }}>
+            BULK ISSUANCE · TEMPLATE VAULT · VERIFICATION CHAIN
+          </p>
+        </div>
 
-          <div className="flex flex-wrap gap-2.5">
-            <Link href="/dashboard/certificates/builder" className="ck-btn-secondary flex items-center gap-2 text-xs py-2.5 px-4 rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0">
-              <Palette className="w-4 h-4 text-red-500" /> DESIGN_TEMPLATE
-            </Link>
-            <button onClick={() => setShowUpload(true)} className="ck-btn-secondary flex items-center gap-2 text-xs py-2.5 px-4 rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0">
-              <Upload className="w-4 h-4 text-red-500" /> LOAD_TEMPLATE
-            </button>
-            <button onClick={() => setShowGenerate(true)} className="ck-btn-primary flex items-center gap-2 text-xs py-2.5 px-4 rounded-xl shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0">
-              <Plus className="w-4 h-4" /> EXEC_GENERATE
-            </button>
+        {/* Header stats */}
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col items-end gap-0.5 px-4 py-2.5 rounded-xl border bg-[#0D0F14]" style={{ borderColor: "#1A1E26" }}>
+            <span className="text-[9px] font-mono uppercase tracking-widest" style={{ color: "#4B5563" }}>SYS TIME</span>
+            <span className="text-xs font-mono font-bold" style={{ color: "#CCFF00" }}>{systemTime || "SYNCING..."}</span>
+          </div>
+          <div className="flex flex-col items-end gap-0.5 px-4 py-2.5 rounded-xl border bg-[#0D0F14]" style={{ borderColor: "#1A1E26" }}>
+            <span className="text-[9px] font-mono uppercase tracking-widest" style={{ color: "#4B5563" }}>TEMPLATES</span>
+            <span className="text-xs font-mono font-bold text-white">{templates.length} UNITS</span>
           </div>
         </div>
       </div>
 
-      {/* Templates Vault Gallery */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Cpu className="w-4 h-4 text-red-500" />
-            <h3 className="font-mono text-sm uppercase tracking-widest text-white font-bold">TEMPLATES_VAULT ({templates.length})</h3>
-          </div>
+      {/* ── Action row ── */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <Link href="/dashboard/certificates/builder"
+          className="ck-btn-secondary flex items-center gap-2 text-xs py-2 px-4"
+        >
+          <Palette className="w-4 h-4" /> DESIGN TEMPLATE
+        </Link>
+        <button onClick={() => setShowUpload(true)}
+          className="ck-btn-secondary flex items-center gap-2 text-xs py-2 px-4"
+        >
+          <Upload className="w-4 h-4" /> UPLOAD TEMPLATE
+        </button>
+        <button onClick={() => setShowGenerate(true)}
+          className="ck-btn-primary flex items-center gap-2 text-xs py-2 px-4"
+        >
+          <Plus className="w-4 h-4" /> GENERATE CERTS
+        </button>
+      </div>
+
+      {/* ── Templates Vault ── */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Cpu className="w-4 h-4" style={{ color: "#CCFF00" }} />
+          <h2 className="text-sm font-bold uppercase tracking-widest text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            TEMPLATE VAULT <span className="text-[#4B5563] font-normal">({templates.length})</span>
+          </h2>
         </div>
-        
+
         {templates.length === 0 ? (
-          <div className="relative overflow-hidden rounded-2xl border border-dashed border-red-955 bg-black/40 p-10 text-center transition-all hover:bg-black/60 group">
-            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-red-500/40" />
-            <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-red-500/40" />
-            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-red-500/40" />
-            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-red-500/40" />
-            
-            <div className="relative z-10 max-w-sm mx-auto">
-              <div className="w-16 h-16 rounded-full bg-red-950/20 border border-red-900/30 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                <Upload className="w-6 h-6 text-red-400 animate-pulse" />
-              </div>
-              <h4 className="text-sm font-mono font-bold uppercase tracking-wider text-white mb-1">No Design Templates Found</h4>
-              <p className="text-xs text-zinc-400 mb-6 font-mono leading-relaxed">
-                Design custom credentials in the dashboard workspace, or upload a template file to start batch processing.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-2.5 justify-center">
-                <Link href="/dashboard/certificates/builder" className="ck-btn-secondary text-[10px] px-3.5 py-2 font-mono flex items-center gap-1.5">
-                  <Palette className="w-3.5 h-3.5" /> OPEN_DESIGNER
-                </Link>
-                <button onClick={() => setShowUpload(true)} className="ck-btn-primary text-[10px] px-3.5 py-2 font-mono flex items-center gap-1.5">
-                  <Upload className="w-3.5 h-3.5" /> LOAD_IMAGE_OR_PDF
-                </button>
-              </div>
+          <div className="flex flex-col items-center justify-center py-14 gap-4 rounded-xl border border-dashed"
+            style={{ borderColor: "rgba(204,255,0,0.15)", background: "rgba(204,255,0,0.02)" }}
+          >
+            <div className="w-14 h-14 rounded-2xl border flex items-center justify-center" style={{ borderColor: "rgba(204,255,0,0.2)", background: "rgba(204,255,0,0.04)" }}>
+              <Upload className="w-6 h-6" style={{ color: "#CCFF00" }} />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-bold text-white">No Templates Found</p>
+              <p className="text-xs text-[#4B5563] font-mono mt-1">Upload or design a certificate template to begin</p>
+            </div>
+            <div className="flex gap-2">
+              <Link href="/dashboard/certificates/builder" className="ck-btn-secondary text-xs py-1.5 px-3">OPEN DESIGNER</Link>
+              <button onClick={() => setShowUpload(true)} className="ck-btn-primary text-xs py-1.5 px-3">UPLOAD FILE</button>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {templates.map((t, i) => (
-              <motion.div 
-                key={t.id} 
-                initial={{ opacity: 0, y: 15 }} 
-                animate={{ opacity: 1, y: 0 }} 
-                transition={{ delay: i * 0.05 }}
+              <motion.div key={t.id}
+                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                 onClick={() => router.push(`/dashboard/certificates/builder?templateId=${t.id}`)}
-                className="ck-card p-3.5 group hover:border-red-500/50 hover:shadow-[0_0_20px_rgba(220,38,38,0.15)] transition-all cursor-pointer relative overflow-hidden bg-gradient-to-b from-zinc-950 to-black"
+                className="group relative rounded-xl border bg-[#0D0F14] overflow-hidden cursor-pointer transition-all hover:border-[rgba(204,255,0,0.3)]"
+                style={{ borderColor: "#1A1E26" }}
               >
-                {/* Cyber Corner Design Decors */}
-                <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-red-500/20 group-hover:border-red-500/60" />
-                <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-red-500/20 group-hover:border-red-500/60" />
-                
-                <button 
-                  onClick={(e) => handleDeleteTemplate(t.id, e)} 
-                  className="absolute top-3 right-3 p-2 rounded-lg bg-black/90 text-red-500 hover:text-white hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 border border-zinc-800"
-                  title="Delete Template"
+                <button
+                  onClick={e => handleDeleteTemplate(t.id, e)}
+                  className="absolute top-2 right-2 z-10 w-7 h-7 rounded-lg border bg-black/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:border-[rgba(255,0,60,0.5)]"
+                  style={{ borderColor: "#1A1E26", color: "#FF003C" }}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
 
-                <div className="h-28 rounded-lg bg-black flex items-center justify-center mb-3.5 overflow-hidden border border-zinc-900 group-hover:border-red-500/30 transition-all relative">
-                  {t.fileType === "png" || t.fileType === "jpg" ? (
-                    <img src={`${SERVER_BASE_URL}${t.fileUrl}`} alt={t.name} className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-500" />
+                <div className="h-24 flex items-center justify-center bg-black border-b overflow-hidden" style={{ borderColor: "#1A1E26" }}>
+                  {t.fileType && t.fileType.toLowerCase() !== "pdf" ? (
+                    <img src={`${SERVER_BASE_URL}${t.fileUrl}`} alt={t.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-400" />
                   ) : (
-                    <div className="flex flex-col items-center gap-1.5">
-                      <FileCheck className="w-8 h-8 text-red-900 group-hover:text-red-500 transition-colors" />
-                      <span className="text-[9px] font-mono text-zinc-500 tracking-wider">PDF FORMAT</span>
+                    <div className="flex flex-col items-center gap-1">
+                      <FileCheck className="w-7 h-7 text-[#4B5563] group-hover:text-[#CCFF00] transition-colors" />
+                      <span className="text-[9px] font-mono text-[#4B5563]">PDF</span>
                     </div>
                   )}
-                  {/* Hover visual label overlay */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 font-mono text-[10px] tracking-wider text-red-400 font-bold gap-1 uppercase border border-red-500/30 rounded-lg">
-                    <Palette className="w-3.5 h-3.5" /> EDIT_SCHEMATIC
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider" style={{ color: "#CCFF00" }}>
+                    <Palette className="w-3.5 h-3.5" /> EDIT
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-mono font-bold text-white truncate max-w-[150px]">{t.name}</p>
-                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded border border-red-900/40 bg-red-950/30 text-red-400 uppercase font-bold shrink-0">{t.fileType}</span>
-                  </div>
-                  <p className="text-[9px] font-mono flex items-center gap-1" style={{ color: "var(--ck-text-muted)" }}>
-                    <Users className="w-3 h-3 text-red-900" /> CREATED BY {t.createdBy?.name?.toUpperCase() || "SYSTEM"}
-                  </p>
+                <div className="p-3 flex items-center justify-between gap-2">
+                  <p className="text-xs font-bold text-white truncate">{t.name}</p>
+                  <span className="text-[8px] font-mono px-1.5 py-0.5 rounded border shrink-0 uppercase" style={{ color: "#FF4D00", borderColor: "rgba(255,77,0,0.25)", background: "rgba(255,77,0,0.06)" }}>
+                    {t.fileType}
+                  </span>
                 </div>
               </motion.div>
             ))}
@@ -419,527 +393,423 @@ export default function CertificatesPage() {
         )}
       </div>
 
-      {/* Load Template Modal */}
-      <AnimatePresence>
-        {showUpload && (
-          <div className="ck-modal-overlay">
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="ck-card p-6 w-full max-w-[95vw] sm:max-w-md relative overflow-hidden border-zinc-800 bg-zinc-950/90 backdrop-blur-xl">
-              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-80" />
-              
-              <div className="flex justify-between items-center mb-5">
-                <div className="flex items-center gap-2">
-                  <Cpu className="w-4 h-4 text-red-500" />
-                  <h2 className="text-lg font-bold font-mono tracking-tight text-white uppercase">LOAD_TEMPLATE_MODULE</h2>
-                </div>
-                <button onClick={() => setShowUpload(false)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-zinc-400 hover:text-red-500 transition-colors">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="ck-label font-mono">Template Descriptor Name</label>
-                  <input className="ck-input text-xs font-mono" value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="e.g. CYBER_WORKSHOP_2026" />
-                </div>
-                
-                <div>
-                  <label className="ck-label font-mono">Source File Upload</label>
-                  <div className="relative border border-dashed border-zinc-800 hover:border-red-500/40 rounded-lg p-5 text-center bg-black/40 cursor-pointer transition-colors group">
-                    <input 
-                      type="file" 
-                      accept=".png,.pdf,.jpg,.jpeg" 
-                      className="absolute inset-0 opacity-0 cursor-pointer" 
-                      onChange={(e) => setTemplateFile(e.target.files?.[0] || null)} 
-                    />
-                    <Upload className="w-8 h-8 mx-auto mb-2 text-zinc-500 group-hover:text-red-500 transition-colors" />
-                    <p className="text-[10px] font-mono text-zinc-400 group-hover:text-white transition-colors truncate">
-                      {templateFile ? templateFile.name.toUpperCase() : "DRAG FILE OR CLICK TO BROWSE"}
-                    </p>
-                    <p className="text-[8px] font-mono text-zinc-600 mt-1">SUPPORTS: PNG, JPG, PDF (MAX 5MB)</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-2.5 pt-2">
-                  <button onClick={() => setShowUpload(false)} className="ck-btn-secondary flex-1 text-xs">CANCEL</button>
-                  <button onClick={handleUploadTemplate} disabled={!templateFile} className="ck-btn-primary flex-1 text-xs">PROVISION_UPLOAD</button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Generate / Execution Modal */}
-      <AnimatePresence>
-        {showGenerate && (
-          <div className="ck-modal-overlay">
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="ck-card p-6 w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto relative overflow-hidden border-zinc-800 bg-zinc-950/95 backdrop-blur-xl">
-              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-80" />
-              
-              <div className="flex justify-between items-center mb-5 border-b border-zinc-900 pb-4">
-                <div className="flex items-center gap-2">
-                  <Terminal className="w-4 h-4 text-red-500 animate-pulse" />
-                  <h2 className="text-lg font-bold font-mono tracking-tight text-white uppercase">BATCH_EXEC_UNIT (CREDENTIALS)</h2>
-                </div>
-                <button onClick={() => { setShowGenerate(false); setImportedRecipients([]); setImportSummary(null); setGenerationLogs([]); }}
-                  className="p-1.5 rounded-lg hover:bg-red-500/10 text-zinc-400 hover:text-red-500 transition-colors">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {generating ? (
-                /* Hacker Generator Diagnostic Console */
-                <div className="space-y-6 py-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] font-mono mb-1.5 uppercase">
-                      <span className="text-red-500 font-bold animate-pulse">GENERATION_ENGINE_RUNNING...</span>
-                      <span className="font-bold text-white">{Math.round(generationProgress)}%</span>
-                    </div>
-                    <div className="h-3 rounded-full overflow-hidden bg-black/80 border border-zinc-800/80">
-                      <motion.div
-                        animate={{ width: `${generationProgress}%` }}
-                        className="h-full bg-gradient-to-r from-red-800 via-red-500 to-amber-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]"
-                        transition={{ duration: 0.3 }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-zinc-800/80 bg-black/90 p-4 font-mono text-[10px] text-zinc-400 space-y-1 max-h-60 overflow-y-auto scrollbar-thin shadow-inner h-56 flex flex-col justify-end">
-                    <div className="flex-1 overflow-y-auto space-y-1.5 pt-2">
-                      {generationLogs.map((log, index) => (
-                        <div key={index} className="flex items-start gap-2 animate-fade-in">
-                          <span className="text-zinc-600">[{new Date().toLocaleTimeString()}]</span>
-                          <span className={`${log.includes('ERR') ? 'text-red-500' : log.includes('OK') || log.includes('COMP') ? 'text-emerald-400 font-bold' : 'text-zinc-300'}`}>
-                            {log}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <p className="text-[9px] font-mono text-zinc-500 text-center tracking-wider animate-pulse">
-                    DO NOT REFRESH OR CLOSE THIS SESSION MODULE
-                  </p>
-                </div>
-              ) : (
-                /* Standard Settings Configuration Form */
-                <div className="space-y-5">
-                  
-                  {/* Step 1: Destination event context config */}
-                  <div className="space-y-3">
-                    <h3 className="font-mono text-xs text-red-400 font-bold uppercase tracking-wider">01. Destination Configuration</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="ck-label font-mono">Target Event Registry *</label>
-                        <select className="ck-input text-xs font-mono" value={selectedEvent} onChange={(e) => setSelectedEvent(e.target.value)}>
-                          <option value="">Select target event...</option>
-                          {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.title}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="ck-label font-mono">Vault Layout Template *</label>
-                        <select className="ck-input text-xs font-mono" value={selectedTemplate} onChange={(e) => setSelectedTemplate(e.target.value)}>
-                          <option value="">Default template</option>
-                          {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Step 2: Data source selector and importer tabs */}
-                  <div className="space-y-3 pt-2">
-                    <div className="flex justify-between items-center">
-                      <h3 className="font-mono text-xs text-red-400 font-bold uppercase tracking-wider">02. Recipient Data Registry</h3>
-                      
-                      {/* Interactive Tab Selector Buttons */}
-                      <div className="flex rounded-lg border border-zinc-800 bg-black/60 p-0.5 font-mono text-[9px]">
-                        <button 
-                          type="button"
-                          onClick={() => { setActiveImportTab("text"); setImportedRecipients([]); setImportSummary(null); }} 
-                          className={`px-3 py-1 rounded-md transition-colors uppercase ${activeImportTab === "text" ? "bg-red-950/60 text-red-400 font-bold" : "text-zinc-500 hover:text-white"}`}
-                        >
-                          TEXT_LIST
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={() => { setActiveImportTab("file"); setImportedRecipients([]); setImportSummary(null); }} 
-                          className={`px-3 py-1 rounded-md transition-colors uppercase ${activeImportTab === "file" ? "bg-red-950/60 text-red-400 font-bold" : "text-zinc-500 hover:text-white"}`}
-                        >
-                          FILE_SHEET
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={() => { setActiveImportTab("event"); setImportedRecipients([]); setImportSummary(null); }}
-                          disabled={!selectedEvent}
-                          className={`px-3 py-1 rounded-md transition-colors uppercase disabled:opacity-30 disabled:cursor-not-allowed ${activeImportTab === "event" ? "bg-red-950/60 text-red-400 font-bold" : "text-zinc-500 hover:text-white"}`}
-                        >
-                          REGISTRATIONS
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Content tab panel: Textarea paste list */}
-                    {activeImportTab === "text" && (
-                      <div className="space-y-2.5">
-                        <textarea 
-                          className="ck-input font-mono text-xs" 
-                          rows={6} 
-                          value={recipientText}
-                          onChange={(e) => setRecipientText(e.target.value)}
-                          placeholder={"John Doe, john@example.com\nJane Smith, jane@example.com\nBob Wilson"} 
-                        />
-                        <p className="text-[10px] font-mono text-zinc-500">
-                          Format: One record per line, e.g. <code className="text-zinc-300">Name, Email</code>. ({recipientText.trim().split("\n").filter(Boolean).length} record(s) queued)
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Content tab panel: CSV / Excel Upload Dropzone */}
-                    {activeImportTab === "file" && (
-                      <div className="space-y-3">
-                        <div
-                          onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}
-                          className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${dragOver ? "border-red-500 bg-red-900/10" : "border-zinc-800 bg-black/40 hover:bg-black/60"}`}
-                          onClick={() => document.getElementById("csv-upload-batch")?.click()}>
-                          <FileSpreadsheet className="w-10 h-10 mx-auto mb-2 text-zinc-500 group-hover:text-red-500 transition-colors" />
-                          <p className="text-xs font-mono font-bold text-white mb-1">
-                            {importing ? "COMPILING SHEET CONTEXT..." : "DROP EXCEL OR CSV SOURCE FILE"}
-                          </p>
-                          <p className="text-[9px] font-mono text-zinc-500">
-                            CSV, XLSX OR XLS CHIP FILES ONLY
-                          </p>
-                          <input id="csv-upload-batch" type="file" accept=".csv,.xlsx,.xls" className="hidden"
-                            onChange={(e) => e.target.files?.[0] && handleFileImport(e.target.files[0])} />
-                        </div>
-
-                        {importSummary && (
-                          <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-900 bg-black/40 font-mono text-[10px]">
-                            <div className="flex items-center gap-4">
-                              <span className="text-emerald-400 font-bold flex items-center gap-1">
-                                <CheckCircle className="w-3.5 h-3.5" /> {importSummary.valid} VALID
-                              </span>
-                              {importSummary.invalid > 0 && (
-                                <span className="text-red-500 font-bold flex items-center gap-1">
-                                  <AlertCircle className="w-3.5 h-3.5" /> {importSummary.invalid} INVALID
-                                </span>
-                              )}
-                              <span className="text-zinc-500">TOTAL: {importSummary.total} RECORDS</span>
-                            </div>
-                            {importSummary.valid > 0 && (
-                              <button 
-                                type="button"
-                                onClick={() => {
-                                  setRecipientText(importedRecipients.filter((r) => r.valid).map((r) => `${r.name}${r.email ? `, ${r.email}` : ""}`).join("\n"));
-                                  showToast(`Successfully queued ${importSummary.valid} records!`, "success");
-                                }}
-                                className="ck-btn-primary py-1 px-2.5 text-[9px]"
-                              >
-                                CONFIRM_AND_SYNC
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Content tab panel: Fetch Event Registrations */}
-                    {activeImportTab === "event" && (
-                      <div className="p-5 border border-zinc-900 rounded-xl bg-black/40 text-center space-y-4">
-                        <div className="max-w-xs mx-auto space-y-1">
-                          <p className="text-xs font-mono text-zinc-300 font-bold uppercase">Poll Event Database Records</p>
-                          <p className="text-[10px] font-mono text-zinc-500 leading-normal">
-                            Pull student or delegate registry data directly from approvals cache for automatic synchrony.
-                          </p>
-                        </div>
-                        <button 
-                          type="button"
-                          onClick={handleImportFromRegistrations} 
-                          disabled={!selectedEvent || importing} 
-                          className="ck-btn-secondary text-xs py-2 px-4 font-mono w-full max-w-xs mx-auto flex items-center justify-center gap-2"
-                        >
-                          <RefreshCw className={`w-4 h-4 text-red-500 ${importing ? "animate-spin" : ""}`} /> 
-                          {importing ? "FETCHING_DATABASE_ENTRIES..." : "FETCH_EVENT_REGS"}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Operational Footer Actions */}
-                  <div className="flex gap-3 pt-3 border-t border-zinc-900">
-                    <button 
-                      type="button"
-                      onClick={() => { setShowGenerate(false); setImportedRecipients([]); setImportSummary(null); setGenerationLogs([]); }}
-                      className="ck-btn-secondary flex-1 text-xs"
-                    >
-                      CANCEL
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={handleBulkGenerate}
-                      disabled={generating || !selectedEvent || !recipientText.trim()}
-                      className="ck-btn-primary flex-1 text-xs"
-                    >
-                      EXECUTE_ISSUANCE_MATRIX
-                    </button>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Certificate Management Terminal */}
-      <div className="space-y-4 mt-8">
-        <div className="flex items-center justify-between">
+      {/* ── Certificates Table ── */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-red-500" />
-            <h3 className="font-mono text-sm uppercase tracking-widest text-white font-bold">ISSUANCE_RECORDS</h3>
+            <Layers className="w-4 h-4" style={{ color: "#CCFF00" }} />
+            <h2 className="text-sm font-bold uppercase tracking-widest text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              ISSUED CERTIFICATES
+            </h2>
           </div>
           {certs.length > 0 && (
-            <button onClick={handleDownloadZip} className="ck-btn-secondary text-xs py-2 px-3 font-mono">
-              <Archive className="w-4 h-4" /> DL_ZIP_VAULT
+            <button onClick={handleDownloadZip} className="ck-btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5">
+              <Archive className="w-3.5 h-3.5" /> DOWNLOAD ZIP
             </button>
           )}
         </div>
 
-        {/* Filter Widget Control Panel */}
-        <div className="relative overflow-hidden p-4 rounded-xl border border-zinc-800/80 bg-zinc-950/20 backdrop-blur-md">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="w-full md:w-72">
-              <label className="ck-label font-mono text-[9px]">Linked Event Context</label>
-              <select className="ck-input w-full text-xs font-mono" value={selectedEvent} onChange={(e) => setSelectedEvent(e.target.value)}>
-                <option value="">Select event directory...</option>
-                {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.title}</option>)}
-              </select>
-            </div>
-            
-            {selectedEvent && certs.length > 0 ? (
-              <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto md:flex-1 justify-end items-end">
-                <div className="relative w-full md:max-w-md">
-                  <label className="ck-label font-mono text-[9px]">Diagnostic Search</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                    <input 
-                      className="ck-input pl-9 w-full bg-black/60 border-zinc-800 text-xs py-2 font-mono" 
-                      placeholder="Enter name, email, or cert ID..." 
-                      value={certSearchQuery}
-                      onChange={(e) => setCertSearchQuery(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="w-full md:w-44">
-                  <label className="ck-label font-mono text-[9px]">Sort Order</label>
-                  <select 
-                    className="ck-input bg-black/60 border-zinc-800 text-xs py-2 w-full font-mono"
-                    value={certSortBy}
-                    onChange={(e) => setCertSortBy(e.target.value as any)}
-                  >
-                    <option value="date">NEWEST RECORD</option>
-                    <option value="name">ALPHABETICAL (A-Z)</option>
-                  </select>
+        {/* Event + search filter row */}
+        <div className="flex items-end gap-3 flex-wrap">
+          <div className="flex flex-col gap-1 flex-1 min-w-[200px] max-w-xs">
+            <label className="ck-label">Filter by Event</label>
+            <select className="ck-input ck-select text-xs" value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)}>
+              <option value="">All events...</option>
+              {events.map(ev => <option key={ev.id} value={ev.id}>{ev.title}</option>)}
+            </select>
+          </div>
+          {selectedEvent && certs.length > 0 && (
+            <>
+              <div className="flex flex-col gap-1 flex-1 min-w-[180px]">
+                <label className="ck-label">Search</label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#4B5563]" />
+                  <input value={certSearchQuery} onChange={e => setCertSearchQuery(e.target.value)}
+                    placeholder="Name, email or code..."
+                    className="ck-input text-xs pl-8"
+                  />
                 </div>
               </div>
-            ) : null}
-          </div>
+              <div className="flex flex-col gap-1">
+                <label className="ck-label">Sort</label>
+                <select className="ck-input ck-select text-xs" value={certSortBy} onChange={e => setCertSortBy(e.target.value as any)}>
+                  <option value="date">NEWEST FIRST</option>
+                  <option value="name">ALPHABETICAL</option>
+                </select>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Dynamic Empty States & Workflow Wizard */}
         {!selectedEvent ? (
-          /* Issuance Workflow Guide */
-          <div className="p-6 rounded-2xl border border-red-500/5 bg-gradient-to-b from-zinc-950 to-black text-center space-y-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-red-955/5 blur-3xl rounded-full" />
-            
-            <div className="max-w-xl mx-auto space-y-2">
-              <h4 className="text-md font-mono font-bold uppercase tracking-wider text-white">SYSTEM READY FOR DEPLOYMENT</h4>
-              <p className="text-xs text-zinc-400 font-mono">
-                Initialize the credential issuance sequence by selecting a target event database container.
-              </p>
-            </div>
-
-            {/* Step flow grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10 text-left">
-              {/* Step 1 */}
-              <div 
-                onClick={() => {
-                  const select = document.querySelector('select');
-                  if (select) {
-                    select.focus();
-                    (select as any).style.borderColor = 'var(--ck-accent)';
-                  }
-                }}
-                className="p-4 rounded-xl border border-zinc-900 bg-zinc-950/60 hover:border-red-500/40 transition-all cursor-pointer group"
+          /* Workflow guide */
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              { step: "01", icon: <Calendar className="w-5 h-5" />, title: "LINK EVENT", desc: "Select target event to view or generate certificates", color: "#CCFF00" },
+              { step: "02", icon: <Palette className="w-5 h-5" />, title: "DESIGN TEMPLATE", desc: "Build credential layout in the designer workspace", color: "#FF4D00", action: () => router.push("/dashboard/certificates/builder") },
+              { step: "03", icon: <Plus className="w-5 h-5" />, title: "BULK GENERATE", desc: "Issue certificates to participants via CSV or registrations", color: "#FF003C", action: () => setShowGenerate(true) },
+            ].map(s => (
+              <button key={s.step} type="button" onClick={s.action}
+                className="text-left p-4 rounded-xl border bg-[#0D0F14] hover:bg-[#121519] transition-all group"
+                style={{ borderColor: "#1A1E26" }}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-red-950/30 border border-red-900/30 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-                    <Calendar className="w-4 h-4 text-red-400" />
-                  </div>
-                  <span className="text-[10px] font-mono text-red-500 font-bold bg-red-950/20 px-2 py-0.5 rounded border border-red-900/20">STEP 01</span>
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center border" style={{ color: s.color, borderColor: `${s.color}25`, background: `${s.color}08` }}>{s.icon}</div>
+                  <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded border" style={{ color: s.color, borderColor: `${s.color}25` }}>STEP {s.step}</span>
                 </div>
-                <h5 className="text-xs font-mono font-bold text-white uppercase mb-1.5 group-hover:text-red-400 transition-colors">LINK_EVENT_CONTEXT</h5>
-                <p className="text-[10px] text-zinc-500 leading-normal font-mono">
-                  Select a directory container representing your event registrations base.
-                </p>
-              </div>
-
-              {/* Step 2 */}
-              <div 
-                onClick={() => router.push('/dashboard/certificates/builder')}
-                className="p-4 rounded-xl border border-zinc-900 bg-zinc-950/60 hover:border-red-500/40 transition-all cursor-pointer group"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-red-950/30 border border-red-900/30 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-                    <Palette className="w-4 h-4 text-red-400" />
-                  </div>
-                  <span className="text-[10px] font-mono text-zinc-500 font-bold bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">STEP 02</span>
-                </div>
-                <h5 className="text-xs font-mono font-bold text-white uppercase mb-1.5 group-hover:text-red-400 transition-colors">PROVISION_TEMPLATES</h5>
-                <p className="text-[10px] text-zinc-500 leading-normal font-mono">
-                  Configure schematic templates inside the editor workspace.
-                </p>
-              </div>
-
-              {/* Step 3 */}
-              <button 
-                type="button"
-                onClick={() => setShowGenerate(true)}
-                className="p-4 rounded-xl border border-zinc-900 bg-zinc-950/60 hover:border-red-500/40 transition-all text-left group"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-red-950/30 border border-red-900/30 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-                    <Plus className="w-4 h-4 text-red-400" />
-                  </div>
-                  <span className="text-[10px] font-mono text-zinc-500 font-bold bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">STEP 03</span>
-                </div>
-                <h5 className="text-xs font-mono font-bold text-white uppercase mb-1.5 group-hover:text-red-400 transition-colors">BATCH_EXECUTION</h5>
-                <p className="text-[10px] text-zinc-500 leading-normal font-mono">
-                  Trigger compiler engine via CSV data parsing or direct registration polling.
-                </p>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white mb-1 group-hover:text-[#CCFF00] transition-colors" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{s.title}</h3>
+                <p className="text-[10px] font-mono text-[#4B5563] leading-relaxed">{s.desc}</p>
               </button>
-            </div>
+            ))}
           </div>
-        ) : selectedEvent && certs.length === 0 ? (
-          /* Empty Record Holder for Selected Event */
-          <div className="p-8 text-center rounded-2xl border border-zinc-900 bg-black/40">
-            <FileText className="w-10 h-10 mx-auto mb-3 text-zinc-600" />
-            <h4 className="text-sm font-mono font-bold uppercase tracking-wider text-white mb-1">No Generated Certificates Available</h4>
-            <p className="text-xs text-zinc-400 mb-6 font-mono max-w-sm mx-auto">
-              No digital certificates have been generated for this event segment yet. Launch the compiler engine to distribute credentials.
-            </p>
-            <button 
-              type="button"
-              onClick={() => setShowGenerate(true)} 
-              className="ck-btn-primary text-xs py-2 px-4 rounded-xl font-mono flex items-center gap-1.5 mx-auto"
-            >
-              <Plus className="w-4 h-4" /> BATCH_EXECUTE_UNIT
+        ) : certs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-4 rounded-xl border bg-[#0D0F14]" style={{ borderColor: "#1A1E26" }}>
+            <div className="w-12 h-12 rounded-2xl border flex items-center justify-center" style={{ borderColor: "#1A1E26" }}>
+              <FileText className="w-6 h-6 text-[#4B5563]" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-bold text-white">No Certificates Yet</p>
+              <p className="text-xs text-[#4B5563] font-mono mt-1">No certificates generated for this event.</p>
+            </div>
+            <button type="button" onClick={() => setShowGenerate(true)} className="ck-btn-primary text-xs py-2 px-4 flex items-center gap-2">
+              <Plus className="w-4 h-4" /> GENERATE NOW
             </button>
           </div>
-        ) : null}
+        ) : (
+          <div className="rounded-xl border overflow-hidden" style={{ borderColor: "#1A1E26" }}>
+            <div className="overflow-x-auto w-full">
+              <table className="w-full border-collapse" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                <thead>
+                  <tr style={{ background: "rgba(0,0,0,0.3)" }}>
+                    {["RECIPIENT", "EMAIL", "CERT ID", "STATUS", "DATE", "ACTIONS"].map(h => (
+                      <th key={h} className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest border-b"
+                        style={{ color: "rgba(204,255,0,0.6)", borderColor: "#1A1E26" }}
+                      >{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {certs
+                    .filter(c => !certSearchQuery || c.recipientName.toLowerCase().includes(certSearchQuery.toLowerCase()) || c.recipientEmail?.toLowerCase().includes(certSearchQuery.toLowerCase()) || c.uniqueCode.toLowerCase().includes(certSearchQuery.toLowerCase()))
+                    .sort((a, b) => certSortBy === "name" ? a.recipientName.localeCompare(b.recipientName) : new Date(b.generatedAt || b.createdAt || 0).getTime() - new Date(a.generatedAt || a.createdAt || 0).getTime())
+                    .map(c => (
+                      <tr key={c.id} className="border-b transition-colors hover:bg-[rgba(204,255,0,0.02)]" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+                        <td className="px-4 py-3 text-sm font-bold text-white">{c.recipientName}</td>
+                        <td className="px-4 py-3 text-xs text-[#4B5563]">{c.recipientEmail || "—"}</td>
+                        <td className="px-4 py-3">
+                          <code className="text-[10px] px-2 py-0.5 rounded border" style={{ color: "#FF4D00", borderColor: "rgba(255,77,0,0.2)", background: "rgba(255,77,0,0.05)" }}>
+                            {c.uniqueCode}
+                          </code>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="ck-badge ck-badge-success text-[9px]">{c.status}</span>
+                        </td>
+                        <td className="px-4 py-3 text-[10px] text-[#4B5563]">
+                          {c.generatedAt ? new Date(c.generatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            {c.fileUrl && (
+                              <>
+                                <a href={`${SERVER_BASE_URL}${c.fileUrl}`} target="_blank" rel="noopener noreferrer"
+                                  className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 hover:underline transition-colors"
+                                  style={{ color: "#CCFF00" }}
+                                >
+                                  <Eye className="w-3.5 h-3.5" /> VIEW
+                                </a>
+                                <a href={`${SERVER_BASE_URL}${c.fileUrl}`} download target="_blank" rel="noopener noreferrer"
+                                  className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 hover:underline transition-colors text-[#FF4D00]"
+                                >
+                                  <Download className="w-3.5 h-3.5" /> DL
+                                </a>
+                              </>
+                            )}
+                            <a href={`/verify/${c.uniqueCode}`} target="_blank"
+                              className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 hover:underline transition-colors text-[#8892A4] hover:text-white"
+                            >
+                              <ShieldCheck className="w-3.5 h-3.5" /> VERIFY
+                            </a>
+                            <button type="button" onClick={() => handleDeleteCert(c.id)}
+                              className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 hover:underline transition-colors"
+                              style={{ color: "#FF003C" }}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> DEL
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
-      {selectedEvent && certs.length > 0 && (
-        <div className="ck-card border-zinc-800/80 bg-zinc-950/20 backdrop-blur-md overflow-hidden relative">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-red-900/30 to-transparent" />
-          
-          <div className="overflow-x-auto w-full">
-            <table className="ck-table ck-table-responsive whitespace-nowrap font-mono text-xs">
-            <thead>
-              <tr>
-                <th className="font-mono tracking-widest text-[10px]">RECIPIENT_NAME</th>
-                <th className="font-mono tracking-widest text-[10px]">EMAIL_ADDRESS</th>
-                <th className="font-mono tracking-widest text-[10px]">UNIQUE_HASH</th>
-                <th className="font-mono tracking-widest text-[10px]">VAULT_STATUS</th>
-                <th className="font-mono tracking-widest text-[10px]">ISSUANCE_DATE</th>
-                <th className="font-mono tracking-widest text-[10px] text-right">OPERATIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {certs
-                .filter(c => 
-                  c.recipientName.toLowerCase().includes(certSearchQuery.toLowerCase()) || 
-                  (c.recipientEmail && c.recipientEmail.toLowerCase().includes(certSearchQuery.toLowerCase())) ||
-                  c.uniqueCode.toLowerCase().includes(certSearchQuery.toLowerCase())
-                )
-                .sort((a, b) => {
-                  if (certSortBy === "name") return a.recipientName.localeCompare(b.recipientName);
-                  if (certSortBy === "date") {
-                    return new Date(b.generatedAt || b.createdAt || 0).getTime() - new Date(a.generatedAt || a.createdAt || 0).getTime();
-                  }
-                  return 0;
-                })
-                .map((c) => (
-                <tr key={c.id} className="group hover:bg-red-500/[0.03] transition-colors border-b border-zinc-900/60">
-                  <td className="text-sm font-bold text-white py-4.5" data-label="Recipient">{c.recipientName}</td>
-                  <td className="text-[10px] text-zinc-400" data-label="Email">{c.recipientEmail?.toLowerCase() || "—"}</td>
-                  <td data-label="Certificate ID">
-                    <code className="text-[10px] px-2 py-0.5 rounded border border-red-900/20 bg-red-950/10 text-red-400/90 font-mono tracking-tight select-all">
-                      {c.uniqueCode}
-                    </code>
-                  </td>
-                  <td data-label="Status">
-                    <span className={`ck-badge ${c.status === "GENERATED" ? "ck-badge-success" : "ck-badge-warning"} text-[9px] px-2 py-0.5 rounded-md`}>
-                      {c.status}
-                    </span>
-                  </td>
-                  <td className="text-[10px] text-zinc-400" data-label="Generated">
-                    {c.generatedAt ? new Date(c.generatedAt).toLocaleString().toUpperCase() : "—"}
-                  </td>
-                  <td data-label="Actions" className="text-right">
-                    <div className="flex items-center justify-end gap-3.5">
-                      {c.fileUrl && (
-                        <>
-                          <a href={`${SERVER_BASE_URL}${c.fileUrl}`} target="_blank" rel="noopener noreferrer"
-                            className="text-indigo-400 hover:text-indigo-300 hover:underline text-[10px] flex items-center gap-1 font-bold uppercase tracking-wider">
-                            <Eye className="w-3.5 h-3.5 text-indigo-400" /> VIEW
-                          </a>
-                          <a href={`${SERVER_BASE_URL}${c.fileUrl}`} download target="_blank" rel="noopener noreferrer"
-                            className="text-red-400 hover:text-red-300 hover:underline text-[10px] flex items-center gap-1 font-bold uppercase tracking-wider">
-                            <Download className="w-3.5 h-3.5 text-red-400" /> DL_PDF
-                          </a>
-                        </>
-                      )}
-                      <a href={`/verify/${c.uniqueCode}`} target="_blank"
-                          className="text-zinc-400 hover:text-white hover:underline text-[10px] flex items-center gap-1 font-bold uppercase tracking-wider">
-                        <ShieldCheck className="w-3.5 h-3.5 text-zinc-500" /> VERIFY
-                      </a>
-                      <button 
-                        type="button"
-                        onClick={() => handleDeleteCert(c.id)}
-                        className="text-red-600 hover:text-red-400 hover:underline text-[10px] flex items-center gap-1 font-bold uppercase tracking-wider transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> DELETE
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      {/* ── Upload Template Modal ── */}
+      <AnimatePresence>
+        {showUpload && (
+          <div className="ck-modal-overlay">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-md rounded-2xl border bg-[#0D0F14] overflow-hidden"
+              style={{ borderColor: "rgba(204,255,0,0.2)" }}
+            >
+              {/* Modal header bar */}
+              <div className="h-0.5 w-full" style={{ background: "linear-gradient(90deg, transparent, #CCFF00, transparent)" }} />
+              <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: "#1A1E26" }}>
+                <div className="flex items-center gap-2">
+                  <Upload className="w-4 h-4" style={{ color: "#CCFF00" }} />
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>UPLOAD TEMPLATE</h2>
+                </div>
+                <button onClick={() => setShowUpload(false)} className="w-7 h-7 rounded-lg border border-[#1A1E26] flex items-center justify-center text-[#4B5563] hover:text-white hover:border-[rgba(255,0,60,0.3)] transition-all">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
-      {/* Toast Notification */}
+              <div className="p-6 flex flex-col gap-4">
+                <div className="ck-field-group">
+                  <label className="ck-label">Template Name</label>
+                  <input className="ck-input ck-field-input text-xs" value={templateName} onChange={e => setTemplateName(e.target.value)} placeholder="e.g. CYBERSEC_2026" />
+                </div>
+                <div className="ck-field-group">
+                  <label className="ck-label">Upload File (PNG, JPG, PDF)</label>
+                  <div
+                    className="relative rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition-all hover:border-[rgba(204,255,0,0.3)]"
+                    style={{ borderColor: "#1A1E26", background: "rgba(0,0,0,0.3)" }}
+                  >
+                    <input type="file" accept=".png,.pdf,.jpg,.jpeg" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setTemplateFile(e.target.files?.[0] || null)} />
+                    <Upload className="w-8 h-8 mx-auto mb-2 text-[#4B5563]" />
+                    <p className="text-xs font-mono text-[#8892A4]">{templateFile ? templateFile.name : "Click or drag to upload"}</p>
+                    <p className="text-[9px] font-mono text-[#4B5563] mt-1">PNG · JPG · PDF — MAX 5MB</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => setShowUpload(false)} className="ck-btn-secondary flex-1 text-xs py-2">CANCEL</button>
+                  <button onClick={handleUploadTemplate} disabled={!templateFile} className="ck-btn-primary flex-1 text-xs py-2">UPLOAD</button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Generate Certs Modal ── */}
+      <AnimatePresence>
+        {showGenerate && (
+          <div className="ck-modal-overlay">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border bg-[#0D0F14]"
+              style={{ borderColor: "rgba(204,255,0,0.2)" }}
+            >
+              {/* Header bar */}
+              <div className="h-0.5 w-full" style={{ background: "linear-gradient(90deg, transparent, #CCFF00, transparent)" }} />
+              <div className="px-6 py-4 border-b flex items-center justify-between sticky top-0 bg-[#0D0F14] z-10" style={{ borderColor: "#1A1E26" }}>
+                <div className="flex items-center gap-2">
+                  <Terminal className="w-4 h-4" style={{ color: "#CCFF00" }} />
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                    {generating ? "GENERATING..." : "BULK GENERATE CERTIFICATES"}
+                  </h2>
+                </div>
+                <button onClick={() => { setShowGenerate(false); setImportedRecipients([]); setImportSummary(null); setGenerationLogs([]); }}
+                  className="w-7 h-7 rounded-lg border border-[#1A1E26] flex items-center justify-center text-[#4B5563] hover:text-white hover:border-[rgba(255,0,60,0.3)] transition-all"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-6">
+                {generating ? (
+                  /* Generation progress console */
+                  <div className="flex flex-col gap-5">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between text-[10px] font-mono">
+                        <span className="animate-pulse" style={{ color: "#CCFF00" }}>GENERATING CERTIFICATES...</span>
+                        <span className="font-bold text-white">{Math.round(generationProgress)}%</span>
+                      </div>
+                      <div className="h-2 rounded-full overflow-hidden bg-[#080A0F] border border-[#1A1E26]">
+                        <motion.div animate={{ width: `${generationProgress}%` }} transition={{ duration: 0.3 }}
+                          className="h-full rounded-full"
+                          style={{ background: "linear-gradient(90deg, #CCFF00, #FF4D00)", boxShadow: "0 0 10px rgba(204,255,0,0.4)" }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Log terminal */}
+                    <div className="rounded-xl border bg-[#080A0F] overflow-hidden" style={{ borderColor: "#1A1E26" }}>
+                      <div className="flex items-center gap-2 px-4 py-2 border-b" style={{ borderColor: "#1A1E26" }}>
+                        <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#CCFF00" }} />
+                        <span className="text-[9px] font-mono uppercase tracking-widest text-[#4B5563]">SYSTEM LOG</span>
+                      </div>
+                      <div className="p-4 space-y-1.5 max-h-52 overflow-y-auto custom-scrollbar">
+                        {generationLogs.map((log, i) => (
+                          <div key={i} className="flex items-start gap-2 text-[10px] font-mono">
+                            <span className="text-[#4B5563] shrink-0">[{new Date().toLocaleTimeString()}]</span>
+                            <span style={{ color: log?.includes("ERR") ? "#FF003C" : log?.includes("OK") || log?.includes("COMP") ? "#CCFF00" : "#8892A4" }}>{log}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <p className="text-[9px] font-mono text-center text-[#4B5563] animate-pulse">DO NOT CLOSE THIS WINDOW</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-5">
+                    {/* Step 1: Event + Template */}
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded border" style={{ color: "#CCFF00", borderColor: "rgba(204,255,0,0.2)" }}>01</span>
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-white">Configuration</h3>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="ck-field-group">
+                          <label className="ck-label">Target Event *</label>
+                          <select className="ck-input ck-select ck-field-input text-xs" value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)}>
+                            <option value="">Select event...</option>
+                            {events.map(ev => <option key={ev.id} value={ev.id}>{ev.title}</option>)}
+                          </select>
+                        </div>
+                        <div className="ck-field-group">
+                          <label className="ck-label">Template</label>
+                          <select className="ck-input ck-select ck-field-input text-xs" value={selectedTemplate} onChange={e => setSelectedTemplate(e.target.value)}>
+                            <option value="">Default template</option>
+                            {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-t" style={{ borderColor: "#1A1E26" }} />
+
+                    {/* Step 2: Recipients */}
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded border" style={{ color: "#FF4D00", borderColor: "rgba(255,77,0,0.2)" }}>02</span>
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-white">Recipients</h3>
+                        </div>
+                        {/* Tab selector */}
+                        <div className="flex gap-0.5 p-0.5 rounded-lg bg-[#080A0F] border border-[#1A1E26]">
+                          {[
+                            { id: "text" as const, label: "TEXT LIST" },
+                            { id: "file" as const, label: "FILE" },
+                            { id: "event" as const, label: "REGISTRATIONS" },
+                          ].map(tab => (
+                            <button key={tab.id} type="button"
+                              onClick={() => { setActiveImportTab(tab.id); setImportedRecipients([]); setImportSummary(null); }}
+                              disabled={tab.id === "event" && !selectedEvent}
+                              className="px-2.5 py-1 rounded-md text-[9px] font-mono uppercase tracking-wide transition-all disabled:opacity-30"
+                              style={activeImportTab === tab.id
+                                ? { background: "rgba(204,255,0,0.1)", color: "#CCFF00", border: "1px solid rgba(204,255,0,0.2)" }
+                                : { color: "#4B5563" }
+                              }
+                            >{tab.label}</button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Text tab */}
+                      {activeImportTab === "text" && (
+                        <div className="flex flex-col gap-2">
+                          <textarea
+                            className="ck-input ck-field-input text-xs"
+                            rows={6}
+                            value={recipientText}
+                            onChange={e => setRecipientText(e.target.value)}
+                            placeholder={"John Doe, john@example.com\nJane Smith, jane@example.com\nBob Wilson"}
+                          />
+                          <p className="text-[9px] font-mono text-[#4B5563]">
+                            One per line — <code className="text-[#8892A4]">Name, Email</code> · {recipientText.trim().split("\n").filter(Boolean).length} record(s)
+                          </p>
+                        </div>
+                      )}
+
+                      {/* File tab */}
+                      {activeImportTab === "file" && (
+                        <div className="flex flex-col gap-3">
+                          <div
+                            onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}
+                            onClick={() => document.getElementById("csv-upload-batch")?.click()}
+                            className="flex flex-col items-center justify-center py-10 rounded-xl border-2 border-dashed cursor-pointer transition-all"
+                            style={{ borderColor: dragOver ? "#CCFF00" : "#1A1E26", background: dragOver ? "rgba(204,255,0,0.03)" : "rgba(0,0,0,0.2)" }}
+                          >
+                            <FileSpreadsheet className="w-8 h-8 mb-2 text-[#4B5563]" />
+                            <p className="text-xs font-mono text-[#8892A4]">{importing ? "Processing..." : "Drop CSV or Excel file"}</p>
+                            <p className="text-[9px] font-mono text-[#4B5563] mt-1">CSV · XLSX · XLS</p>
+                            <input id="csv-upload-batch" type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={e => e.target.files?.[0] && handleFileImport(e.target.files[0])} />
+                          </div>
+                          {importSummary && (
+                            <div className="flex items-center justify-between p-3 rounded-xl border" style={{ borderColor: "#1A1E26", background: "rgba(0,0,0,0.3)" }}>
+                              <div className="flex items-center gap-4 text-[10px] font-mono">
+                                <span className="flex items-center gap-1" style={{ color: "#CCFF00" }}><CheckCircle className="w-3.5 h-3.5" /> {importSummary.valid} VALID</span>
+                                {importSummary.invalid > 0 && <span className="flex items-center gap-1" style={{ color: "#FF003C" }}><AlertCircle className="w-3.5 h-3.5" /> {importSummary.invalid} INVALID</span>}
+                                <span className="text-[#4B5563]">TOTAL: {importSummary.total}</span>
+                              </div>
+                              {importSummary.valid > 0 && (
+                                <button type="button" onClick={() => { setRecipientText(importedRecipients.filter(r => r.valid).map(r => `${r.name}${r.email ? `, ${r.email}` : ""}`).join("\n")); showToast(`${importSummary.valid} records queued`, "success"); }}
+                                  className="ck-btn-primary text-[9px] py-1 px-2.5"
+                                >USE VALID</button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Event registrations tab */}
+                      {activeImportTab === "event" && (
+                        <div className="flex flex-col items-center gap-4 py-8 rounded-xl border bg-[#080A0F] text-center" style={{ borderColor: "#1A1E26" }}>
+                          <div>
+                            <p className="text-sm font-bold text-white">Import from Event Registrations</p>
+                            <p className="text-xs font-mono text-[#4B5563] mt-1 max-w-sm">Automatically pull all registered participants from the selected event</p>
+                          </div>
+                          <button type="button" onClick={handleImportFromRegistrations} disabled={!selectedEvent || importing}
+                            className="ck-btn-secondary text-xs py-2 px-5 flex items-center gap-2"
+                          >
+                            <RefreshCw className={`w-4 h-4 ${importing ? "animate-spin" : ""}`} />
+                            {importing ? "FETCHING..." : "IMPORT REGISTRATIONS"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action row */}
+                    <div className="flex gap-3 pt-1 border-t" style={{ borderColor: "#1A1E26" }}>
+                      <button type="button" onClick={() => { setShowGenerate(false); setImportedRecipients([]); setImportSummary(null); setGenerationLogs([]); }}
+                        className="ck-btn-secondary flex-1 text-xs py-2.5"
+                      >CANCEL</button>
+                      <button type="button" onClick={handleBulkGenerate}
+                        disabled={generating || !selectedEvent || !recipientText.trim()}
+                        className="ck-btn-primary flex-1 text-xs py-2.5"
+                      >GENERATE CERTIFICATES</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Toast ── */}
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            initial={{ opacity: 0, y: 40, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className={`fixed bottom-5 right-5 z-[100] flex items-center gap-3 p-4 rounded-xl border shadow-2xl ${
-              toast.type === "success" 
-                ? "bg-emerald-950/90 border-emerald-500/50 text-emerald-200" 
-                : toast.type === "error" 
-                ? "bg-red-950/90 border-red-500/50 text-red-200" 
-                : "bg-zinc-900/90 border-zinc-700/50 text-zinc-200"
-            }`}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-5 right-5 z-[100] flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl"
+            style={toast.type === "success"
+              ? { background: "rgba(204,255,0,0.08)", borderColor: "rgba(204,255,0,0.3)", color: "#CCFF00" }
+              : toast.type === "error"
+              ? { background: "rgba(255,0,60,0.08)", borderColor: "rgba(255,0,60,0.3)", color: "#FF003C" }
+              : { background: "rgba(255,77,0,0.08)", borderColor: "rgba(255,77,0,0.3)", color: "#FF4D00" }
+            }
           >
-            {toast.type === "success" && <CheckCircle className="w-5 h-5 text-emerald-400" />}
-            {toast.type === "error" && <AlertCircle className="w-5 h-5 text-red-400" />}
-            <span className="text-sm font-mono tracking-tight">{toast.message}</span>
-            <button type="button" onClick={() => setToast(null)} className="ml-2 hover:opacity-80 p-0.5 rounded bg-black/30">
+            {toast.type === "success" && <CheckCircle className="w-4 h-4 shrink-0" />}
+            {toast.type === "error" && <AlertCircle className="w-4 h-4 shrink-0" />}
+            <span className="text-sm font-mono font-semibold">{toast.message}</span>
+            <button type="button" onClick={() => setToast(null)} className="ml-1 opacity-60 hover:opacity-100">
               <X className="w-3.5 h-3.5" />
             </button>
           </motion.div>
@@ -948,3 +818,4 @@ export default function CertificatesPage() {
     </div>
   );
 }
+

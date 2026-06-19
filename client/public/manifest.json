@@ -1,0 +1,25 @@
+{
+  "name": "CyberKavach 2.0 Command Center",
+  "short_name": "CyberKavach",
+  "description": "On-the-go security operations check-in and notification console",
+  "start_url": "/dashboard/attendance",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#05070A",
+  "theme_color": "#CCFF00",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/ck-logo.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/ck-logo.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

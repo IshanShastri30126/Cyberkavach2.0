@@ -7,6 +7,30 @@ import { auditLog } from "../middlewares/auditLog";
 import { upload } from "../middlewares/upload";
 import { sendEventPublishedEmail, sendEventRegistrationEmail } from "../lib/emailService";
 import { sendBulkNotification, sendNotification } from "../lib/notificationService";
+import redis, { redisGet, redisSet, redisDel } from "../lib/redis";
+
+async function clearEventsCache() {
+  try {
+    await Promise.all([
+      redisDel("PUBLIC_EVENTS_LIMIT_3"),
+      redisDel("PUBLIC_EVENTS_LIMIT_all")
+    ]);
+    const redisClient = redis;
+    if (redisClient) {
+      const keys = await redisClient.keys("events:all:*");
+      if (keys && keys.length > 0) {
+        await Promise.all(keys.map(key => redisClient.del(key)));
+      }
+    }
+    await redisDel("analytics:operations");
+    await redisDel("analytics:club");
+    await redisDel("analytics:top3");
+    await redisDel("analytics:events-analysis");
+    await redisDel("analytics:coordinator-activity");
+  } catch (err) {
+    console.error("[Events] Cache clear error:", err);
+  }
+}
 
 const router = Router();
 
@@ -85,6 +109,7 @@ router.post("/", authenticate, requireMinRole("STUDENT_COORDINATOR"), validate(c
       }
     }
 
+    await clearEventsCache();
     res.status(201).json({ event });
   } catch (err) { console.error("[Events] Create error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
@@ -94,6 +119,7 @@ router.post("/:id/poster", authenticate, requireMinRole("STUDENT_COORDINATOR"), 
   try {
     if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
     const event = await prisma.event.update({ where: { id: req.params.id }, data: { posterUrl: `/uploads/${req.file.filename}` } });
+    await clearEventsCache();
     res.json({ event });
   } catch (err) { console.error("[Events] Poster error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
@@ -103,6 +129,7 @@ router.post("/:id/document", authenticate, requireMinRole("STUDENT_COORDINATOR")
   try {
     if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
     const event = await prisma.event.update({ where: { id: req.params.id }, data: { documentUrl: `/uploads/${req.file.filename}` } });
+    await clearEventsCache();
     res.json({ event });
   } catch (err) { console.error("[Events] Document upload error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
@@ -110,8 +137,29 @@ router.post("/:id/document", authenticate, requireMinRole("STUDENT_COORDINATOR")
 // GET /api/events — Public published events with search/filter
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const { search, tag, from, to } = req.query;
-    const where: any = { isPublished: true };
+    const { search, tag, from, to, limit } = req.query;
+
+    const isCacheable = !search && !tag && !from && !to;
+    const cacheKey = `PUBLIC_EVENTS_LIMIT_${limit || 'all'}`;
+
+    if (isCacheable) {
+      const cached = await redisGet(cacheKey);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          res.json({ events: parsed });
+          return;
+        } catch (e) {
+          console.warn("[Events] Parse cached events failed:", e);
+        }
+      }
+    }
+
+    const where: any = {
+      isPublished: true,
+      isApproved: true,
+      endDate: { gte: new Date() }
+    };
     if (search) {
       where.OR = [
         { title: { contains: search as string, mode: "insensitive" } },
@@ -122,11 +170,20 @@ router.get("/", async (req: Request, res: Response) => {
     if (from) where.startDate = { gte: new Date(from as string) };
     if (to) where.endDate = { lte: new Date(to as string) };
 
+    const takeCount = limit ? parseInt(limit as string) : undefined;
+
     const events = await prisma.event.findMany({
       where,
       include: { creator: { select: { id: true, name: true, role: true } }, _count: { select: { registrations: true } } },
       orderBy: { startDate: "desc" },
+      take: takeCount,
     });
+
+    if (isCacheable) {
+      // Cache standard queries for 5 minutes (300s)
+      await redisSet(cacheKey, JSON.stringify(events), 300);
+    }
+
     res.json({ events });
   } catch (err) { console.error("[Events] List error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
@@ -135,6 +192,14 @@ router.get("/", async (req: Request, res: Response) => {
 router.get("/all", authenticate, requireMinRole("TECH"), async (req: Request, res: Response) => {
   try {
     const { search, status, tag } = req.query;
+    
+    const cacheKey = `events:all:${search || "none"}:${status || "all"}:${tag || "all"}`;
+    const cached = await redisGet(cacheKey);
+    if (cached) {
+      res.json(JSON.parse(cached));
+      return;
+    }
+
     const where: any = {};
     if (search) {
       where.OR = [
@@ -154,6 +219,8 @@ router.get("/all", authenticate, requireMinRole("TECH"), async (req: Request, re
       },
       orderBy: { startDate: "desc" },
     });
+
+    await redisSet(cacheKey, JSON.stringify(events), 300); // 5 minutes cache
     res.json({ events });
   } catch (err) { console.error("[Events] List all error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
@@ -168,6 +235,30 @@ router.get("/public/:slug", async (req: Request, res: Response) => {
     if (!event || !event.isPublished) { res.status(404).json({ error: "Event not found" }); return; }
     res.json({ event });
   } catch (err) { console.error("[Events] Public error:", err); res.status(500).json({ error: "Internal server error" }); }
+});
+
+// GET /api/events/registered — Get events current user is registered for
+router.get("/registered", authenticate, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const registrations = await prisma.eventRegistration.findMany({
+      where: { userId },
+      include: {
+        event: {
+          include: {
+            creator: { select: { id: true, name: true, role: true } },
+            _count: { select: { registrations: true } },
+          },
+        },
+      },
+      orderBy: { event: { startDate: "desc" } },
+    });
+    const events = registrations.map((r) => r.event);
+    res.json({ events });
+  } catch (err) {
+    console.error("[Events] Registered list error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // GET /api/events/:id/is-registered — Check if current user is registered for the event
@@ -302,6 +393,7 @@ router.patch("/:id", authenticate, requireMinRole("STUDENT_COORDINATOR"), auditL
       }
     }
 
+    await clearEventsCache();
     res.json({ event });
   } catch (err) { console.error("[Events] Update error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
@@ -327,6 +419,7 @@ router.patch("/:id/publish", authenticate, requireMinRole("STUDENT_COORDINATOR")
       data: { isPublished: willPublish, isDraft: !willPublish },
     });
 
+    await clearEventsCache();
     res.json({ event: updated });
   } catch (err) { console.error("[Events] Publish error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
@@ -339,6 +432,7 @@ router.delete("/:id", authenticate, requireMinRole("STUDENT_COORDINATOR"), audit
     const updated = await prisma.event.update({
       where: { id: req.params.id }, data: { isPublished: false, isDraft: true },
     });
+    await clearEventsCache();
     res.json({ message: "Event archived", event: updated });
   } catch (err) { console.error("[Events] Delete error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
@@ -455,14 +549,19 @@ router.post("/:id/register", authenticate, auditLog("EVENT_REGISTRATION"), async
       }).catch(err => console.error("[Events] Registrant email failed:", err));
     }
 
+    await clearEventsCache();
     res.status(201).json({ registration: reg, teamCode: generatedTeamCode });
   } catch (err) { console.error("[Events] Register error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
 
-// GET /api/events/:id/registrations — List registrations with search
+// GET /api/events/:id/registrations — List registrations with search (paginated)
 router.get("/:id/registrations", authenticate, requireMinRole("TECH"), async (req: Request, res: Response) => {
   try {
     const { search } = req.query;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
     const where: any = { eventId: req.params.id };
     if (search) {
       where.user = {
@@ -473,15 +572,28 @@ router.get("/:id/registrations", authenticate, requireMinRole("TECH"), async (re
         ],
       };
     }
-    const regs = await prisma.eventRegistration.findMany({
-      where,
-      include: {
-        user: { select: { id: true, name: true, email: true, studentId: true, role: true, department: true } },
-        team: { select: { id: true, name: true, teamCode: true } },
-      },
-      orderBy: { createdAt: "desc" },
+
+    const [regs, total] = await Promise.all([
+      prisma.eventRegistration.findMany({
+        where,
+        include: {
+          user: { select: { id: true, name: true, email: true, studentId: true, role: true, department: true } },
+          team: { select: { id: true, name: true, teamCode: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.eventRegistration.count({ where })
+    ]);
+
+    res.json({ 
+      registrations: regs, 
+      count: total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
     });
-    res.json({ registrations: regs, count: regs.length });
   } catch (err) { console.error("[Events] Regs error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
 

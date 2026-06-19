@@ -15,6 +15,21 @@ const checkInSchema = z.object({
   teamCode: z.string().optional(), // for team check-in via QR
 });
 
+// GET /api/attendance/my-status/:eventId — Check if current user is checked in
+router.get("/my-status/:eventId", authenticate, async (req: Request, res: Response) => {
+  try {
+    const eventId = req.params.eventId;
+    const userId = req.user!.userId;
+    const record = await prisma.attendance.findFirst({
+      where: { userId, eventId, type: "CHECK_IN" }
+    });
+    res.json({ checkedIn: !!record, record });
+  } catch (err) {
+    console.error("[Attendance] My status check error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // POST /api/attendance — Record check-in/out
 router.post("/", authenticate, validate(checkInSchema), auditLog("ATTENDANCE_RECORDED"), async (req: Request, res: Response) => {
   try {

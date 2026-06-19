@@ -8,6 +8,26 @@ import { sendNotification } from "../lib/notificationService";
 import { sendApprovalDecisionEmail } from "../lib/emailService";
 import { upload } from "../middlewares/upload";
 import { Role } from "@prisma/client";
+import redis, { redisGet, redisSet, redisDel } from "../lib/redis";
+
+async function invalidateApprovalsCache() {
+  try {
+    const redisClient = redis;
+    if (redisClient) {
+      const keys = await redisClient.keys("approvals:list:*");
+      if (keys && keys.length > 0) {
+        await Promise.all(keys.map(key => redisClient.del(key)));
+      }
+    }
+    await redisDel("analytics:operations");
+    await redisDel("analytics:club");
+    await redisDel("analytics:top3");
+    await redisDel("analytics:events-analysis");
+    await redisDel("analytics:coordinator-activity");
+  } catch (err) {
+    console.warn("Failed to invalidate approvals cache:", err);
+  }
+}
 
 const router = Router();
 
@@ -84,6 +104,8 @@ router.post(
         });
       }
 
+      await invalidateApprovalsCache();
+
       res.status(201).json({ request });
     } catch (err) {
       console.error("[Approvals] Create error:", err);
@@ -97,8 +119,33 @@ router.get("/", authenticate, async (req: Request, res: Response) => {
   try {
     const { role, userId } = req.user!;
     const { status, type } = req.query;
+    
+    const cacheKey = `approvals:list:${userId}:${role}:${status || "all"}:${type || "all"}`;
+    const cached = await redisGet(cacheKey);
+    if (cached) {
+      res.json(JSON.parse(cached));
+      return;
+    }
+
     const includeOpts = {
-      steps: { orderBy: { level: "asc" as const } },
+      steps: { 
+        orderBy: { level: "asc" as const },
+        select: {
+          id: true,
+          level: true,
+          role: true,
+          status: true,
+          comment: true,
+          decidedAt: true,
+          createdAt: true,
+          approver: {
+            select: {
+              name: true,
+              role: true
+            }
+          }
+        }
+      },
       requester: {
         select: { id: true, name: true, email: true, role: true },
       },
@@ -123,7 +170,9 @@ router.get("/", authenticate, async (req: Request, res: Response) => {
       });
     }
 
-    res.json({ requests });
+    const data = { requests };
+    await redisSet(cacheKey, JSON.stringify(data), 300); // 5 minutes cache
+    res.json(data);
   } catch (err) { console.error("[Approvals] List error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
 
@@ -146,6 +195,9 @@ router.post("/:id/attachment", authenticate, upload.single("attachment"), async 
       where: { id: req.params.id },
       data: { metadata },
     });
+    
+    await invalidateApprovalsCache();
+
     res.json({ request: updated });
   } catch (err) { console.error("[Approvals] Attachment error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
@@ -361,6 +413,8 @@ router.post(
           requester: { select: { id: true, name: true, email: true, role: true } },
         },
       });
+
+      await invalidateApprovalsCache();
 
       res.json({ request: updated });
     } catch (err) {

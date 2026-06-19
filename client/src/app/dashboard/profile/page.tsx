@@ -19,7 +19,8 @@ import {
   BookOpen,
   Building,
   GraduationCap,
-  Phone
+  Phone,
+  Fingerprint
 } from "lucide-react";
 import { DefaultAvatar } from "@/components/default-avatar";
 
@@ -31,6 +32,7 @@ export default function ProfilePage() {
   
   // Edit Profile State
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showBiometricScan, setShowBiometricScan] = useState(false);
   const [editName, setEditName] = useState("");
   const [editPassword, setEditPassword] = useState("");
   const [editStudentId, setEditStudentId] = useState("");
@@ -66,7 +68,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
-        <div className="w-8 h-8 border-3 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
+        <div className="w-8 h-8 border-3 border-violet-500/30 border-t-cyan-400 rounded-full animate-spin" />
         <p className="text-xs uppercase font-mono text-[var(--ck-text-secondary)] tracking-widest">Loading Operative Dossier...</p>
       </div>
     );
@@ -97,7 +99,11 @@ export default function ProfilePage() {
         throw new Error(errData.error || "Failed to update profile");
       }
       
-      window.location.reload();
+      setShowEditModal(false);
+      setShowBiometricScan(true);
+      setTimeout(() => {
+        window.location.reload();
+      }, 2800);
     } catch (err: any) {
       console.error(err);
       alert(err instanceof Error ? err.message : "Error updating profile");
@@ -118,8 +124,8 @@ export default function ProfilePage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Profile Header Dossier Card */}
-      <div className="ck-card p-6 sm:p-8 relative overflow-hidden bg-black/40 border-red-950/40">
-        <div className="absolute top-0 right-0 h-full w-1/3 bg-radial-gradient from-red-600/5 to-transparent pointer-events-none" />
+      <div className="ck-card p-6 sm:p-8 relative overflow-hidden bg-black/40 border border-zinc-800 shadow-md hover:border-[#CCFF00]/25 transition-all">
+        <div className="absolute top-0 right-0 h-full w-1/3 bg-gradient-to-l from-[#CCFF00]/5 to-transparent pointer-events-none" />
         
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left relative z-10">
           <div className="relative shrink-0 group">
@@ -128,10 +134,10 @@ export default function ProfilePage() {
                 src={`${SERVER_BASE_URL}${user.avatarUrl}`}
                 alt="Avatar"
                 onError={() => setImgError(true)}
-                className="w-24 h-24 rounded-2xl object-cover border-2 border-red-900/60 shadow-[0_0_15px_rgba(220,38,38,0.25)]"
+                className="w-24 h-24 rounded-2xl object-cover border-2 border-[#CCFF00]/60 shadow-[0_0_15px_rgba(204,255,0,0.25)]"
               />
             ) : (
-              <DefaultAvatar className="w-24 h-24 rounded-2xl border-2 border-zinc-800" />
+              <DefaultAvatar className="w-24 h-24 rounded-2xl border-2 border-[#CCFF00]/20" />
             )}
             <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer" onClick={() => setShowEditModal(true)}>
               <Edit2 className="w-5 h-5 text-white" />
@@ -177,11 +183,11 @@ export default function ProfilePage() {
         <motion.div
           variants={itemVariants}
           whileHover={{ y: -4, scale: 1.01 }}
-          className="ck-card p-5 bg-gradient-to-br from-zinc-950/60 to-black border-zinc-900 hover:border-amber-500/20 transition-all duration-300 relative group overflow-hidden"
+          className="ck-card p-5 bg-gradient-to-br from-zinc-950/60 to-black border-zinc-800 hover:border-[#CCFF00]/30 transition-all duration-300 relative group overflow-hidden"
         >
-          <div className="absolute -right-4 -bottom-4 w-12 h-12 rounded-full bg-amber-500/5 group-hover:bg-amber-500/10 transition-colors pointer-events-none" />
+          <div className="absolute -right-4 -bottom-4 w-12 h-12 rounded-full bg-[#CCFF00]/5 group-hover:bg-[#CCFF00]/10 transition-colors pointer-events-none" />
           <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 flex items-center justify-center text-amber-400 border border-amber-500/30">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#CCFF00]/15 to-transparent text-[#CCFF00] border border-[#CCFF00]/30 flex items-center justify-center shadow-[0_0_10px_rgba(204,255,0,0.1)]">
               <Star className="w-5 h-5" />
             </div>
             <div>
@@ -197,11 +203,11 @@ export default function ProfilePage() {
         <motion.div
           variants={itemVariants}
           whileHover={{ y: -4, scale: 1.01 }}
-          className="ck-card p-5 bg-gradient-to-br from-zinc-950/60 to-black border-zinc-900 hover:border-violet-500/20 transition-all duration-300 relative group overflow-hidden"
+          className="ck-card p-5 bg-gradient-to-br from-zinc-950/60 to-black border-zinc-800 hover:border-[#FF4D00]/30 transition-all duration-300 relative group overflow-hidden"
         >
-          <div className="absolute -right-4 -bottom-4 w-12 h-12 rounded-full bg-violet-500/5 group-hover:bg-violet-500/10 transition-colors pointer-events-none" />
+          <div className="absolute -right-4 -bottom-4 w-12 h-12 rounded-full bg-[#FF4D00]/5 group-hover:bg-[#FF4D00]/10 transition-colors pointer-events-none" />
           <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500/20 to-indigo-500/10 flex items-center justify-center text-violet-400 border border-violet-500/30">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#FF4D00]/15 to-transparent text-[#FF4D00] border border-[#FF4D00]/30 flex items-center justify-center shadow-[0_0_10px_rgba(255,77,0,0.1)]">
               <Award className="w-5 h-5" />
             </div>
             <div>
@@ -217,11 +223,11 @@ export default function ProfilePage() {
         <motion.div
           variants={itemVariants}
           whileHover={{ y: -4, scale: 1.01 }}
-          className="ck-card p-5 bg-gradient-to-br from-zinc-950/60 to-black border-zinc-900 hover:border-cyan-500/20 transition-all duration-300 relative group overflow-hidden"
+          className="ck-card p-5 bg-gradient-to-br from-zinc-950/60 to-black border-zinc-800 hover:border-[#CCFF00]/30 transition-all duration-300 relative group overflow-hidden"
         >
-          <div className="absolute -right-4 -bottom-4 w-12 h-12 rounded-full bg-cyan-500/5 group-hover:bg-cyan-500/10 transition-colors pointer-events-none" />
+          <div className="absolute -right-4 -bottom-4 w-12 h-12 rounded-full bg-[#CCFF00]/5 group-hover:bg-[#CCFF00]/10 transition-colors pointer-events-none" />
           <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/10 flex items-center justify-center text-cyan-400 border border-cyan-500/30">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#CCFF00]/15 to-transparent text-[#CCFF00] border border-[#CCFF00]/30 flex items-center justify-center shadow-[0_0_10px_rgba(204,255,0,0.1)]">
               <Calendar className="w-5 h-5" />
             </div>
             <div>
@@ -235,9 +241,9 @@ export default function ProfilePage() {
       </motion.div>
 
       {/* Operative Details Grid */}
-      <div className="ck-card p-6 bg-black/30 border-red-950/20">
-        <h3 className="text-sm font-bold mb-5 flex items-center gap-2 uppercase tracking-tight text-white font-mono border-b border-red-900/10 pb-3">
-          <User className="w-4 h-4 text-red-500" /> OPERATIVE DOSSIER DETAILS
+      <div className="ck-card p-6 bg-black/30 border border-zinc-800 shadow-md">
+        <h3 className="text-sm font-bold mb-5 flex items-center gap-2 uppercase tracking-tight text-white font-mono border-b border-zinc-850 pb-3">
+          <User className="w-4 h-4" style={{ color: "#CCFF00" }} /> OPERATIVE DOSSIER DETAILS
         </h3>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm font-mono">
@@ -322,9 +328,9 @@ export default function ProfilePage() {
 
       {/* Badges showcase section */}
       {history?.badges?.length > 0 && (
-        <div className="ck-card p-6 bg-black/30 border-red-950/20">
-          <h3 className="text-sm font-bold mb-4 flex items-center gap-2 uppercase tracking-tight text-white font-mono border-b border-red-900/10 pb-3">
-            <Shield className="w-4 h-4 text-violet-500" /> BADGES VAULT
+        <div className="ck-card p-6 bg-black/30 border border-zinc-800 shadow-md">
+          <h3 className="text-sm font-bold mb-4 flex items-center gap-2 uppercase tracking-tight text-white font-mono border-b border-zinc-850 pb-3">
+            <Shield className="w-4 h-4" style={{ color: "#FF4D00" }} /> BADGES VAULT
           </h3>
           <div className="flex flex-wrap gap-3">
             {history.badges.map((b: any) => (
@@ -333,10 +339,10 @@ export default function ProfilePage() {
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 whileHover={{ scale: 1.05 }}
-                className="p-3.5 rounded-xl text-center border border-zinc-900 bg-zinc-950/40 hover:border-violet-500/20 min-w-[90px] transition-all cursor-help"
+                className="p-3.5 rounded-xl text-center border border-zinc-900 bg-zinc-950/40 hover:border-[#CCFF00]/30 min-w-[90px] transition-all cursor-help"
                 title={b.badge.description}
               >
-                <span className="text-3xl drop-shadow-[0_0_8px_rgba(139,92,246,0.35)]">{b.badge.icon}</span>
+                <span className="text-3xl drop-shadow-[0_0_8px_rgba(204,255,0,0.35)]">{b.badge.icon}</span>
                 <p className="text-[10px] font-mono font-bold mt-1.5 text-[var(--ck-text-secondary)] uppercase">{b.badge.name}</p>
               </motion.div>
             ))}
@@ -346,9 +352,9 @@ export default function ProfilePage() {
 
       {/* Point history list */}
       {history?.points?.length > 0 && (
-        <div className="ck-card p-6 bg-black/30 border-red-950/20">
-          <h3 className="text-sm font-bold mb-4 flex items-center gap-2 uppercase tracking-tight text-white font-mono border-b border-red-900/10 pb-3">
-            <TrendingUp className="w-4 h-4 text-emerald-550" /> CONTRIBUTION LEDGER
+        <div className="ck-card p-6 bg-black/30 border border-zinc-800 shadow-md">
+          <h3 className="text-sm font-bold mb-4 flex items-center gap-2 uppercase tracking-tight text-white font-mono border-b border-zinc-850 pb-3">
+            <TrendingUp className="w-4 h-4" style={{ color: "#CCFF00" }} /> CONTRIBUTION LEDGER
           </h3>
           <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
             {history.points.slice(0, 20).map((p: any) => (
@@ -371,8 +377,8 @@ export default function ProfilePage() {
       <AnimatePresence>
         {showEditModal && (
           <div className="ck-modal-overlay">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="ck-card p-6 w-full max-w-lg relative bg-zinc-950/95 border-red-950">
-              <button onClick={() => setShowEditModal(false)} className="absolute top-4 right-4 text-[var(--ck-text-muted)] hover:text-white z-20">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="ck-card p-6 w-full max-w-lg relative bg-zinc-955/95 border border-zinc-800 shadow-lg">
+              <button onClick={() => setShowEditModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white transition z-20">
                 <X className="w-5 h-5" />
               </button>
               <h2 className="text-xl font-bold text-white mb-6 uppercase tracking-tight font-mono">Edit Profile Dossier</h2>
@@ -432,6 +438,39 @@ export default function ProfilePage() {
               </form>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+      {/* Biometric Scanning Success Overlay */}
+      <AnimatePresence>
+        {showBiometricScan && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center z-50 p-6"
+          >
+            <div className="relative w-48 h-48 flex items-center justify-center border border-[#CCFF00]/20 rounded-full bg-zinc-900/50 shadow-[0_0_50px_rgba(204,255,0,0.1)] mb-6 overflow-hidden">
+              {/* Scan line */}
+              <motion.div 
+                className="absolute left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#CCFF00] to-transparent shadow-[0_0_8px_rgba(204,255,0,0.8)]"
+                animate={{ top: ["0%", "100%", "0%"] }}
+                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.div
+                animate={{ scale: [0.95, 1.05, 0.95] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Fingerprint className="w-20 h-20 text-[#CCFF00] drop-shadow-[0_0_15px_rgba(204,255,0,0.5)]" />
+              </motion.div>
+            </div>
+            
+            <h3 className="text-xl font-bold font-mono uppercase tracking-widest mb-2" style={{ color: "#CCFF00" }}>
+              BIOMETRIC VERIFIED
+            </h3>
+            <p className="text-[10px] text-zinc-400 font-mono uppercase tracking-wider text-center max-w-sm">
+              DNA Profile updated successfully. Recalibrating agent credentials.
+            </p>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

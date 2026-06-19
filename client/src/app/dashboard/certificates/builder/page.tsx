@@ -9,7 +9,7 @@ import {
   PenTool, Layers, MoveUp, MoveDown, Download, ZoomIn, ZoomOut, 
   Palette, Check, X, ClipboardPaste, CheckCircle, AlertCircle, 
   Type, Square, Circle, Minus, PlusCircle, Trash2, AlignLeft, 
-  AlignCenter, AlignRight, Bold, Italic 
+  AlignCenter, AlignRight, Bold, Italic, Sparkles, FileText
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { CanvasNode } from "@/components/KonvaEditor";
@@ -56,7 +56,7 @@ function CertificateBuilderContent() {
 
   // Mobile layout state
   const [isMobile, setIsMobile] = useState(false);
-  const [activeSidebarTab, setActiveSidebarTab] = useState<"canvas" | "theme" | "tools" | "templates">("canvas");
+  const [activeSidebarTab, setActiveSidebarTab] = useState<"canvas" | "theme" | "tools" | "properties">("canvas");
 
   // Toast notifications state
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
@@ -64,6 +64,163 @@ function CertificateBuilderContent() {
   const showToast = useCallback((message: string, type: "success" | "error" | "info" = "info") => {
     setToast({ message, type });
   }, []);
+
+  // AI Suggestions state
+  const [aiEventType, setAiEventType] = useState("");
+  const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const handleGetSuggestions = async () => {
+    if (!aiEventType.trim()) return;
+    setAiLoading(true);
+    try {
+      const data = await api<{ suggestions: any[] }>("/certificates/suggest-template", {
+        method: "POST",
+        token: token || undefined,
+        body: JSON.stringify({ eventType: aiEventType }),
+      });
+      setAiSuggestions(data.suggestions || []);
+      showToast(`AI generated ${data.suggestions?.length || 0} layout suggestions!`, "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "AI suggestion failed", "error");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const applyAISuggestion = (fields: any) => {
+    const newColors = {
+      primary: fields.borderlineColor || themeColors.primary,
+      accent: fields.accentColor || themeColors.accent,
+      text: fields.textColor || themeColors.text,
+      background: fields.backgroundPattern === "floral" ? "#F5F2EB" : "#0A0D1A"
+    };
+    setThemeColors(newColors);
+
+    const suggestedNodes: CanvasNode[] = [
+      {
+        id: `ai-title-${uuidv4()}`,
+        type: "text",
+        x: 100,
+        y: 80,
+        text: fields.title || "CERTIFICATE",
+        fontSize: 32,
+        fontFamily: fields.fontTheme === "academic" ? "serif" : "mono",
+        fontStyle: "bold",
+        fill: fields.textColor || "#ffffff",
+        align: "center",
+        width: 600,
+        rotation: 0, scaleX: 1, scaleY: 1
+      },
+      {
+        id: `ai-subtitle-${uuidv4()}`,
+        type: "text",
+        x: 100,
+        y: 125,
+        text: fields.subtitle || "OF COMPLIANCE",
+        fontSize: 14,
+        fontFamily: "sans-serif",
+        fontStyle: "bold",
+        fill: fields.accentColor || "#FF4D00",
+        align: "center",
+        width: 600,
+        rotation: 0, scaleX: 1, scaleY: 1,
+        tracking: 2
+      },
+      {
+        id: `ai-pres-${uuidv4()}`,
+        type: "text",
+        x: 100,
+        y: 180,
+        text: fields.presentationalText || "This is to verify that security operative",
+        fontSize: 12,
+        fontFamily: fields.fontTheme === "academic" ? "serif" : "sans-serif",
+        fontStyle: fields.fontTheme === "academic" ? "italic" : "normal",
+        fill: fields.textColor || "#ffffff",
+        align: "center",
+        width: 600,
+        rotation: 0, scaleX: 1, scaleY: 1
+      },
+      {
+        id: `t-name-${uuidv4()}`,
+        type: "text",
+        x: 100,
+        y: 220,
+        text: "[Recipient Name]",
+        fontSize: 36,
+        fontFamily: fields.nameStyle === "mono" ? "mono" : fields.nameStyle?.includes("serif") ? "serif" : "sans-serif",
+        fontStyle: fields.nameStyle?.includes("italic") ? "italic" : "bold",
+        fill: fields.textColor || "#ffffff",
+        align: "center",
+        width: 600,
+        isPlaceholder: true,
+        placeholderType: "recipientName",
+        rotation: 0, scaleX: 1, scaleY: 1
+      },
+      {
+        id: `t-title-${uuidv4()}`,
+        type: "text",
+        x: 100,
+        y: 290,
+        text: fields.description ? fields.description.replace("{{eventTitle}}", "[Event Title]").replace("{{eventDate}}", "[Event Date]") : "For successfully completing [Event Title]",
+        fontSize: 14,
+        fontFamily: "sans-serif",
+        fill: fields.textColor || "#ffffff",
+        align: "center",
+        width: 600,
+        isPlaceholder: true,
+        placeholderType: "eventTitle",
+        rotation: 0, scaleX: 1, scaleY: 1
+      },
+      {
+        id: `t-date-${uuidv4()}`,
+        type: "text",
+        x: 250,
+        y: 360,
+        text: "[Event Date]",
+        fontSize: 12,
+        fontFamily: "sans-serif",
+        fill: fields.textColor || "#ffffff",
+        align: "center",
+        width: 300,
+        isPlaceholder: true,
+        placeholderType: "eventDate",
+        rotation: 0, scaleX: 1, scaleY: 1
+      },
+      {
+        id: `t-code-${uuidv4()}`,
+        type: "text",
+        x: 250,
+        y: 460,
+        text: "CK-XXXX-XXXX",
+        fontSize: 11,
+        fontFamily: "mono",
+        fill: fields.accentColor || "#FF4D00",
+        align: "center",
+        width: 300,
+        isPlaceholder: true,
+        placeholderType: "uniqueCode",
+        rotation: 0, scaleX: 1, scaleY: 1
+      },
+      {
+        id: `ai-border-${uuidv4()}`,
+        type: "shape",
+        x: 20,
+        y: 20,
+        width: 760,
+        height: 520,
+        fill: "transparent",
+        stroke: fields.borderlineColor || "#CCFF00",
+        strokeWidth: fields.borderWidth || 2,
+        radius: 12,
+        rotation: 0, scaleX: 1, scaleY: 1
+      }
+    ];
+
+    setNodes(suggestedNodes);
+    setSelectedId(null);
+    showToast(`AI template applied: ${fields.title || 'Custom'}`, "success");
+  };
 
   useEffect(() => {
     if (toast) {
@@ -138,6 +295,15 @@ function CertificateBuilderContent() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Auto-focus properties tab on mobile when a node is selected
+  useEffect(() => {
+    if (selectedId && isMobile) {
+      setActiveSidebarTab("properties");
+    } else if (!selectedId && activeSidebarTab === "properties") {
+      setActiveSidebarTab("tools");
+    }
+  }, [selectedId, isMobile]);
 
   useEffect(() => {
     if (!token) return;
@@ -402,10 +568,8 @@ function CertificateBuilderContent() {
   };
 
   const handleExport = async () => {
-    // Generate PNG mockup of the certificate canvas and download it
     const stage = document.querySelector("#certificate-stage") as any;
     if (stage) {
-      // Find the konva stage instance and convert to dataURL
       const canvasEl = stage.querySelector("canvas");
       if (canvasEl) {
         const link = document.createElement("a");
@@ -470,17 +634,512 @@ function CertificateBuilderContent() {
 
   const selectedNode = nodes.find(n => n.id === selectedId);
 
+  // ─── Control Block Helpers (reused on desktop and mobile) ───
+  const aiAssistantBlock = () => (
+    <div className="space-y-3 bg-purple-950/20 p-3.5 rounded-xl border border-purple-500/20">
+      <h3 className="text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2 font-mono">
+        <Sparkles className="w-4 h-4 text-purple-400" /> AI Design Assistant
+      </h3>
+      <p className="text-[10px] text-slate-400 font-mono">
+        Enter event category to get layout and coordinate suggestions.
+      </p>
+      <div className="flex gap-2">
+        <input
+          className="bg-black/60 border border-purple-900/40 focus:border-purple-500 focus:outline-none rounded-lg text-xs text-slate-300 placeholder-slate-650 px-2.5 py-1.5 flex-1 font-mono"
+          placeholder="e.g. Cyber Security Hackathon"
+          value={aiEventType}
+          onChange={(e) => setAiEventType(e.target.value)}
+        />
+        <button
+          onClick={handleGetSuggestions}
+          disabled={aiLoading || !aiEventType.trim()}
+          className="bg-purple-700 hover:bg-purple-600 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg text-xs font-mono transition-colors shrink-0 font-bold"
+        >
+          {aiLoading ? "..." : "SUGGEST"}
+        </button>
+      </div>
+
+      {aiSuggestions.length > 0 && (
+        <div className="space-y-1.5 pt-2">
+          <label className="text-[9px] text-slate-550 uppercase font-mono">Select suggestion to apply</label>
+          {aiSuggestions.map((s, idx) => (
+            <button
+              key={idx}
+              onClick={() => applyAISuggestion(s.fields)}
+              className="w-full text-left p-2 rounded-lg bg-black/40 border border-purple-900/30 hover:border-purple-500/50 text-[11px] transition-all cursor-pointer"
+            >
+              <div className="font-bold text-slate-200 font-mono">{s.name}</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">{s.description}</div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const addElementsBlock = () => (
+    <div className="space-y-3">
+      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 font-mono">
+        <PlusCircle className="w-4 h-4 text-[var(--ck-lime)]" /> Add Elements
+      </h3>
+      <div className="grid grid-cols-2 gap-2">
+        <button 
+          onClick={() => addTextNode()}
+          className="p-2 rounded-lg text-xs bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors flex items-center gap-1.5 cursor-pointer font-mono font-bold"
+        >
+          <Type className="w-3.5 h-3.5 text-blue-400" /> + Custom Text
+        </button>
+        <button 
+          onClick={() => addTextNode("recipientName")}
+          className="p-2 rounded-lg text-xs bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors flex items-center gap-1.5 cursor-pointer font-mono font-bold"
+        >
+          <PlusCircle className="w-3.5 h-3.5 text-emerald-400" /> + Recipient
+        </button>
+        <button 
+          onClick={() => addTextNode("eventTitle")}
+          className="p-2 rounded-lg text-xs bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors flex items-center gap-1.5 cursor-pointer font-mono font-bold"
+        >
+          <PlusCircle className="w-3.5 h-3.5 text-purple-400" /> + Event Title
+        </button>
+        <button 
+          onClick={() => addTextNode("eventDate")}
+          className="p-2 rounded-lg text-xs bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors flex items-center gap-1.5 cursor-pointer font-mono font-bold"
+        >
+          <PlusCircle className="w-3.5 h-3.5 text-amber-400" /> + Event Date
+        </button>
+        <button 
+          onClick={() => addTextNode("uniqueCode")}
+          className="p-2 rounded-lg text-xs bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors flex items-center gap-1.5 col-span-2 cursor-pointer font-mono font-bold"
+        >
+          <PlusCircle className="w-3.5 h-3.5 text-cyan-400" /> + Certificate ID (Unique Code)
+        </button>
+      </div>
+      <div className="grid grid-cols-3 gap-2 pt-1">
+        <button 
+          onClick={() => addShapeNode("rect")}
+          className="p-2 rounded-lg text-xs bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors flex flex-col items-center gap-1 cursor-pointer font-mono font-bold"
+        >
+          <Square className="w-4 h-4 text-amber-500" /> Rect
+        </button>
+        <button 
+          onClick={() => addShapeNode("circle")}
+          className="p-2 rounded-lg text-xs bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors flex flex-col items-center gap-1 cursor-pointer font-mono font-bold"
+        >
+          <Circle className="w-4 h-4 text-emerald-500" /> Circle
+        </button>
+        <button 
+          onClick={() => addShapeNode("line")}
+          className="p-2 rounded-lg text-xs bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors flex flex-col items-center gap-1 cursor-pointer font-mono font-bold"
+        >
+          <Minus className="w-4 h-4 text-rose-500" /> Line
+        </button>
+      </div>
+    </div>
+  );
+
+  const studioActionsBlock = () => (
+    <div className="space-y-3">
+      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 font-mono">
+        <Settings2 className="w-4 h-4 text-blue-400" /> Studio Actions
+      </h3>
+      <div className="grid grid-cols-3 gap-2">
+        <button 
+          onClick={() => setIsCropping(!isCropping)}
+          className={`p-2 rounded-lg text-xs flex flex-col items-center justify-center gap-1.5 transition-colors border cursor-pointer font-mono font-bold ${isCropping ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-zinc-900/60 border-zinc-850 hover:border-zinc-700 text-slate-300'}`}
+        >
+          <Crop className="w-3.5 h-3.5" /> Crop
+        </button>
+        <button onClick={handleCut} disabled={!selectedId} className="p-2 rounded-lg text-xs flex flex-col items-center justify-center gap-1.5 bg-zinc-900/60 border border-zinc-850 hover:border-zinc-700 text-slate-300 transition-colors disabled:opacity-30 cursor-pointer font-mono font-bold">
+          <Scissors className="w-3.5 h-3.5" /> Cut
+        </button>
+        <button onClick={handlePaste} disabled={!clipboard} className="p-2 rounded-lg text-xs flex flex-col items-center justify-center gap-1.5 bg-zinc-900/60 border border-zinc-850 hover:border-zinc-700 text-slate-300 transition-colors disabled:opacity-30 cursor-pointer font-mono font-bold">
+          <ClipboardPaste className="w-3.5 h-3.5" /> Paste
+        </button>
+      </div>
+    </div>
+  );
+
+  const orgLogoBlock = () => (
+    <div className="space-y-3">
+      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 font-mono">
+        <ImageIcon className="w-4 h-4 text-purple-400" /> Organization Logo
+      </h3>
+      <input type="file" accept="image/*" className="hidden" ref={logoInputRef} onChange={handleLogoUpload} />
+      <button onClick={() => logoInputRef.current?.click()} className="w-full py-2 bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 text-purple-300 rounded-lg text-xs transition-colors font-mono cursor-pointer font-bold uppercase">
+        + UPLOAD_LOGO
+      </button>
+      {selectedNode?.isLogo && (
+        <div className="flex gap-1 pt-1">
+          <button onClick={() => placeLogo('top-left')} className="flex-1 py-1 bg-zinc-900 border border-zinc-800 rounded text-[10px] text-slate-400 hover:text-white font-mono cursor-pointer font-semibold">Top L</button>
+          <button onClick={() => placeLogo('top-center')} className="flex-1 py-1 bg-zinc-900 border border-zinc-800 rounded text-[10px] text-slate-400 hover:text-white font-mono cursor-pointer font-semibold">Center</button>
+          <button onClick={() => placeLogo('top-right')} className="flex-1 py-1 bg-zinc-900 border border-zinc-800 rounded text-[10px] text-slate-400 hover:text-white font-mono cursor-pointer font-semibold">Top R</button>
+        </div>
+      )}
+    </div>
+  );
+
+  const facultySignatureBlock = () => (
+    <div className="space-y-3">
+      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 font-mono">
+        <PenTool className="w-4 h-4 text-blue-400" /> Faculty Signature
+      </h3>
+      <input 
+        className="ck-input text-xs py-1.5 px-3 bg-black/40 border-zinc-800 w-full font-mono text-slate-200" 
+        placeholder="Faculty Name (e.g. Dr. Anjali)" 
+        value={facultyName} onChange={e => setFacultyName(e.target.value)} 
+      />
+      <input 
+        className="ck-input text-xs py-1.5 px-3 bg-black/40 border-zinc-800 w-full font-mono text-slate-200" 
+        placeholder="Faculty Designation (e.g. Dean)" 
+        value={facultyTitle} onChange={e => setFacultyTitle(e.target.value)} 
+      />
+      <input type="file" accept="image/png" className="hidden" ref={signatureInputRef} onChange={handleSignatureUpload} />
+      <button onClick={() => signatureInputRef.current?.click()} className="w-full py-2 bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20 text-blue-300 rounded-lg text-xs transition-colors font-mono cursor-pointer font-bold uppercase">
+        + UPLOAD_SIGNATURE_PNG
+      </button>
+    </div>
+  );
+
+  const presetsBlock = () => (
+    <div className="space-y-3">
+      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 font-mono">
+        <Layout className="w-4 h-4 text-pink-400" /> Preset Layouts
+      </h3>
+      <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1 custom-scrollbar">
+        {CERTIFICATE_TEMPLATES.map(t => (
+          <button 
+            key={t.id} 
+            onClick={() => handleTemplateSwitch(t.id)}
+            className={`w-full text-left p-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${activeTemplate.id === t.id && !backgroundUrl ? 'bg-pink-500/20 border border-pink-500/50 text-pink-100' : 'bg-zinc-900 border border-zinc-800 text-slate-400 hover:bg-zinc-800'}`}
+          >
+            <div className="flex items-center justify-between font-mono font-semibold">
+              {t.name}
+              {activeTemplate.id === t.id && !backgroundUrl && <Check className="w-3.5 h-3.5 text-pink-400" />}
+            </div>
+            <div className="mt-2 flex gap-1">
+              <div className="w-3.5 h-3.5 rounded-full border border-zinc-700" style={{ backgroundColor: t.theme.primary }} />
+              <div className="w-3.5 h-3.5 rounded-full border border-zinc-700" style={{ backgroundColor: t.theme.background }} />
+              <div className="w-3.5 h-3.5 rounded-full border border-zinc-700" style={{ backgroundColor: t.theme.accent }} />
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const uploadedTemplatesBlock = () => (
+    <div className="space-y-3">
+      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 font-mono">
+        <Upload className="w-4 h-4 text-cyan-400" /> Uploaded Templates
+      </h3>
+      {userTemplates.length === 0 ? (
+        <p className="text-[10px] text-slate-500 text-center py-4 bg-zinc-900/20 rounded-xl border border-zinc-800/40 font-mono">No uploaded templates found.</p>
+      ) : (
+        <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
+          {userTemplates.map(t => (
+            <button 
+              key={t.id} 
+              onClick={() => handleUserTemplateSwitch(t)}
+              className={`w-full text-left p-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${backgroundUrl.includes(t.fileUrl) ? 'bg-cyan-500/20 border border-cyan-500/50 text-cyan-100' : 'bg-zinc-900 border border-zinc-850 text-slate-400 hover:bg-zinc-800'}`}
+            >
+              <div className="flex items-center justify-between gap-2 font-mono font-semibold">
+                <span className="truncate flex-1">{t.name}</span>
+                {backgroundUrl.includes(t.fileUrl) && <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
+              </div>
+              {t.fileUrl && (
+                <div className="mt-2 h-14 w-full rounded bg-black border border-zinc-800 overflow-hidden relative flex items-center justify-center">
+                  {t.fileType && t.fileType.toLowerCase() === "pdf" ? (
+                    <div className="flex flex-col items-center gap-1">
+                      <FileText className="w-5 h-5 text-[#4B5563]" />
+                      <span className="text-[8px] font-mono text-[#4B5563]">PDF</span>
+                    </div>
+                  ) : (
+                    <img src={`${SERVER_BASE_URL}${t.fileUrl}`} alt={t.name} className="w-full h-full object-cover" />
+                  )}
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const themeColorsBlock = () => (
+    <div className="space-y-3">
+      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 font-mono">
+        <Palette className="w-4 h-4 text-emerald-400" /> Theme Colors
+      </h3>
+      <div className="grid grid-cols-2 gap-3">
+        {[
+          { key: 'primary', label: 'Primary' },
+          { key: 'background', label: 'Background' },
+          { key: 'text', label: 'Text' },
+          { key: 'accent', label: 'Accent' }
+        ].map(c => (
+          <div key={c.key} className="space-y-1">
+            <label className="text-[9px] text-slate-500 uppercase font-mono">{c.label}</label>
+            <div className="flex items-center gap-1.5 bg-zinc-900 p-1.5 rounded-lg border border-zinc-800">
+              <input 
+                type="color" 
+                value={themeColors[c.key as keyof ThemeColors] || "#ffffff"} 
+                onChange={(e) => handleColorChange(c.key as keyof ThemeColors, e.target.value)}
+                className="w-5 h-5 rounded cursor-pointer bg-transparent border-0 p-0"
+              />
+              <span className="text-[10px] text-slate-300 font-mono truncate">{themeColors[c.key as keyof ThemeColors]}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const propertyEditorBlock = () => (
+    <div className="space-y-4">
+      {selectedNode ? (
+        <>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-mono">
+              <Settings2 className="w-4 h-4 text-pink-400" /> Property Editor
+            </h3>
+            <button 
+              onClick={() => handleDeleteNode(selectedNode.id)}
+              className="p-1 rounded bg-red-950/40 border border-red-900/30 text-red-400 hover:bg-red-900 hover:text-white transition-colors cursor-pointer"
+              title="Delete Element"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Text Specific Settings */}
+          {selectedNode.type === "text" && (
+            <div className="space-y-3 bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80">
+              <div>
+                <label className="text-[10px] text-slate-500 uppercase font-mono">Text Content</label>
+                <textarea 
+                  className="ck-input text-xs w-full mt-1.5 bg-black/40 border-zinc-800 focus:border-[var(--ck-lime)] text-slate-200 font-mono"
+                  rows={2}
+                  value={selectedNode.text || ""}
+                  onChange={(e) => updateSelectedNode({ text: e.target.value })}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-slate-500 uppercase font-mono">Font Size</label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input 
+                      type="range" min="10" max="100" step="1" 
+                      className="w-full accent-[var(--ck-lime)] cursor-pointer"
+                      value={selectedNode.fontSize || 16}
+                      onChange={(e) => updateSelectedNode({ fontSize: parseInt(e.target.value) || 16 })}
+                    />
+                    <span className="text-xs font-mono w-6 text-right text-slate-300">{selectedNode.fontSize}</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500 uppercase font-mono">Tracking</label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input 
+                      type="range" min="-3" max="25" step="1" 
+                      className="w-full accent-[var(--ck-lime)] cursor-pointer"
+                      value={selectedNode.tracking || 0}
+                      onChange={(e) => updateSelectedNode({ tracking: parseInt(e.target.value) || 0 })}
+                    />
+                    <span className="text-xs font-mono w-6 text-right text-slate-300">{selectedNode.tracking}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-slate-500 uppercase font-mono">Font Family</label>
+                  <select 
+                    className="ck-input text-xs mt-1 w-full bg-black/50 border-zinc-800 font-mono"
+                    value={selectedNode.fontFamily || "sans-serif"}
+                    onChange={(e) => updateSelectedNode({ fontFamily: e.target.value })}
+                  >
+                    <option value="sans-serif">Sans-Serif (Inter)</option>
+                    <option value="serif">Serif (Playfair)</option>
+                    <option value="mono">Monospace (Share Tech)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500 uppercase font-mono">Placeholder Type</label>
+                  <select 
+                    className="ck-input text-xs mt-1 w-full bg-black/50 border-zinc-800 font-mono"
+                    value={selectedNode.isPlaceholder ? (selectedNode.placeholderType || "recipientName") : "none"}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "none") {
+                        updateSelectedNode({ isPlaceholder: false, placeholderType: undefined });
+                      } else {
+                        updateSelectedNode({ isPlaceholder: true, placeholderType: val });
+                      }
+                    }}
+                  >
+                    <option value="none">Normal Text</option>
+                    <option value="recipientName">Recipient Name</option>
+                    <option value="eventTitle">Event Title</option>
+                    <option value="eventDate">Event Date</option>
+                    <option value="uniqueCode">Certificate ID</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Formatting Styles */}
+              <div className="flex items-center gap-2">
+                <div className="flex bg-black/30 border border-zinc-800 rounded-lg p-0.5">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const isBold = selectedNode.fontStyle?.includes("bold");
+                      const isItalic = selectedNode.fontStyle?.includes("italic");
+                      let style = "normal";
+                      if (isBold && isItalic) style = "italic";
+                      else if (isBold) style = "normal";
+                      else if (isItalic) style = "bold italic";
+                      else style = "bold";
+                      updateSelectedNode({ fontStyle: style });
+                    }}
+                    className={`p-1.5 rounded hover:bg-zinc-800/80 transition-colors cursor-pointer ${selectedNode.fontStyle?.includes("bold") ? "text-[var(--ck-lime)] bg-zinc-800" : "text-slate-400"}`}
+                  >
+                    <Bold className="w-3.5 h-3.5" />
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const isBold = selectedNode.fontStyle?.includes("bold");
+                      const isItalic = selectedNode.fontStyle?.includes("italic");
+                      let style = "normal";
+                      if (isBold && isItalic) style = "bold";
+                      else if (isItalic) style = "normal";
+                      else if (isBold) style = "bold italic";
+                      else style = "italic";
+                      updateSelectedNode({ fontStyle: style });
+                    }}
+                    className={`p-1.5 rounded hover:bg-zinc-800/80 transition-colors cursor-pointer ${selectedNode.fontStyle?.includes("italic") ? "text-[var(--ck-lime)] bg-zinc-800" : "text-slate-400"}`}
+                  >
+                    <Italic className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                
+                <div className="flex bg-black/30 border border-zinc-800 rounded-lg p-0.5 ml-auto">
+                  {(["left", "center", "right"] as const).map(align => (
+                    <button 
+                      key={align}
+                      type="button"
+                      onClick={() => updateSelectedNode({ align })}
+                      className={`p-1.5 rounded hover:bg-zinc-800/80 transition-colors cursor-pointer ${selectedNode.align === align ? "text-[var(--ck-lime)] bg-zinc-800" : "text-slate-400"}`}
+                    >
+                      {align === "left" && <AlignLeft className="w-3.5 h-3.5" />}
+                      {align === "center" && <AlignCenter className="w-3.5 h-3.5" />}
+                      {align === "right" && <AlignRight className="w-3.5 h-3.5" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Color */}
+              <div>
+                <label className="text-[10px] text-slate-500 uppercase font-mono">Text Color</label>
+                <div className="flex items-center gap-2 mt-1.5 bg-black/30 p-1.5 rounded-lg border border-zinc-800">
+                  <input 
+                    type="color" 
+                    value={selectedNode.fill || "#000000"} 
+                    onChange={(e) => updateSelectedNode({ fill: e.target.value })}
+                    className="w-6 h-6 rounded cursor-pointer bg-transparent border-0 p-0"
+                  />
+                  <span className="text-xs text-slate-300 font-mono">{selectedNode.fill}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Shape Specific Settings */}
+          {selectedNode.type === "shape" && (
+            <div className="space-y-3 bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-slate-500 uppercase font-mono">Fill Color</label>
+                  <div className="flex items-center gap-2 mt-1 bg-black/30 p-1 rounded-lg border border-zinc-850">
+                    <input 
+                      type="color" 
+                      value={selectedNode.fill || "#B8860B"} 
+                      onChange={(e) => updateSelectedNode({ fill: e.target.value })}
+                      className="w-6 h-6 rounded cursor-pointer bg-transparent border-0 p-0"
+                    />
+                    <span className="text-[10px] text-slate-300 font-mono truncate">{selectedNode.fill}</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500 uppercase font-mono">Stroke/Border</label>
+                  <div className="flex items-center gap-2 mt-1 bg-black/30 p-1 rounded-lg border border-zinc-850">
+                    <input 
+                      type="color" 
+                      value={selectedNode.stroke || "#DAA520"} 
+                      onChange={(e) => updateSelectedNode({ stroke: e.target.value })}
+                      className="w-6 h-6 rounded cursor-pointer bg-transparent border-0 p-0"
+                    />
+                    <span className="text-[10px] text-slate-300 font-mono truncate">{selectedNode.stroke || "None"}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-slate-500 uppercase font-mono">Stroke Width</label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input 
+                      type="range" min="0" max="15" step="1" 
+                      className="w-full accent-[var(--ck-lime)] cursor-pointer"
+                      value={selectedNode.strokeWidth || 0}
+                      onChange={(e) => updateSelectedNode({ strokeWidth: parseInt(e.target.value) || 0 })}
+                    />
+                    <span className="text-xs font-mono w-4 text-right text-slate-300">{selectedNode.strokeWidth || 0}</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500 uppercase font-mono">Corner Radius</label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input 
+                      type="range" min="0" max="100" step="1" 
+                      className="w-full accent-[var(--ck-lime)] cursor-pointer"
+                      value={selectedNode.radius || 0}
+                      onChange={(e) => updateSelectedNode({ radius: parseInt(e.target.value) || 0 })}
+                    />
+                    <span className="text-xs font-mono w-4 text-right text-slate-300">{selectedNode.radius || 0}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Layer Ordering Controls */}
+          <div className="grid grid-cols-4 gap-1 p-1 bg-zinc-900/80 rounded-lg border border-zinc-800">
+            <button onClick={() => moveLayer('back')} className="py-1 text-[9px] font-mono hover:text-white text-slate-400 bg-black/20 hover:bg-black/40 rounded transition-colors cursor-pointer" title="Send to Back">To Back</button>
+            <button onClick={() => moveLayer('down')} className="py-1 text-[9px] font-mono hover:text-white text-slate-400 bg-black/20 hover:bg-black/40 rounded transition-colors cursor-pointer" title="Move Backward">Backwd</button>
+            <button onClick={() => moveLayer('up')} className="py-1 text-[9px] font-mono hover:text-white text-slate-400 bg-black/20 hover:bg-black/40 rounded transition-colors cursor-pointer" title="Move Forward">Forwd</button>
+            <button onClick={() => moveLayer('front')} className="py-1 text-[9px] font-mono hover:text-white text-slate-400 bg-black/20 hover:bg-black/40 rounded transition-colors cursor-pointer" title="Bring to Front">To Front</button>
+          </div>
+        </>
+      ) : (
+        <p className="text-xs font-mono text-zinc-550 text-center py-6 bg-zinc-900/10 rounded-xl border border-dashed border-zinc-800">Select an element to edit properties.</p>
+      )}
+    </div>
+  );
+
   return (
-    <div className="h-[calc(100vh-2rem)] flex flex-col text-white bg-zinc-950 p-2 rounded-2xl overflow-hidden font-sans">
+    <div className="h-[calc(100vh-2rem)] flex flex-col text-white bg-[var(--ck-bg)] p-2 rounded-2xl overflow-hidden font-sans">
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 py-3 border-b border-zinc-800/50 bg-black/40 rounded-t-xl shrink-0 overflow-y-auto max-h-[30vh] md:max-h-none">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full md:w-auto">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-red-500 to-amber-500 bg-clip-text text-transparent flex items-center gap-2 shrink-0">
-            <Layout className="w-5 h-5 text-red-500" /> Certificate Studio
+          <h1 className="text-xl font-bold bg-gradient-to-r from-[var(--ck-lime)] to-[var(--ck-orange)] bg-clip-text text-transparent flex items-center gap-2 shrink-0">
+            <Layout className="w-5 h-5 text-[var(--ck-lime)]" /> Certificate Studio
           </h1>
           <div className="hidden sm:block h-6 w-px bg-zinc-800" />
           <input 
-            className="bg-zinc-900/50 border border-zinc-800 focus:border-red-500 focus:outline-none rounded-lg text-sm text-slate-300 placeholder-slate-600 px-3 py-1.5 w-full sm:w-64" 
+            className="bg-[#0D0F14] border border-[#1A1E26] focus:border-[var(--ck-lime)] focus:outline-none rounded-lg text-sm text-slate-300 placeholder-slate-650 px-3 py-1.5 w-full sm:w-64 font-mono" 
             placeholder="Template Name (e.g. Cybersecurity Excellence)..." 
             value={templateName} 
             onChange={(e) => setTemplateName(e.target.value)} 
@@ -497,418 +1156,22 @@ function CertificateBuilderContent() {
               <option key={ev.id} value={ev.id}>{ev.title}</option>
             ))}
           </select>
-          <button onClick={handleExport} className="bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2">
+          <button onClick={handleExport} className="bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 font-mono cursor-pointer">
             <Download className="w-4 h-4" /> Save PNG
           </button>
-          <button onClick={handleSave} disabled={saving} className="bg-red-600 hover:bg-red-500 px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(220,38,38,0.4)] disabled:opacity-50">
-            {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+          <button onClick={handleSave} disabled={saving} className="bg-[var(--ck-lime)] hover:bg-[#DEFF33] text-black px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(204,255,0,0.3)] disabled:opacity-50 font-mono cursor-pointer">
+            {saving ? <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
             {templateIdParam ? "Update Template" : "Deploy Template"}
           </button>
         </div>
       </div>
 
-      {/* Mobile Tab Navigation */}
-      <div className="flex lg:hidden border-b border-zinc-800/50 bg-black/40 shrink-0">
-        {[
-          { id: "canvas", label: "Canvas" },
-          { id: "theme", label: "Design/Templates" },
-          { id: "tools", label: "Elements/Props" }
-        ].map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActiveSidebarTab(t.id as any)}
-            className={`flex-1 py-3 text-[10px] sm:text-xs font-mono font-bold uppercase border-b-2 transition-all ${
-              activeSidebarTab === t.id 
-                ? "border-red-500 text-red-500 bg-red-500/5" 
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex flex-1 overflow-hidden relative">
-        {/* LEFT SIDEBAR: Tools, Shapes, and Colors */}
-        <div className={`${
-          activeSidebarTab === "theme" || activeSidebarTab === "tools" ? "flex" : "hidden"
-        } lg:flex w-full lg:w-80 border-r border-zinc-800/50 bg-black/30 overflow-y-auto p-4 flex-col space-y-5 shrink-0 custom-scrollbar`}>
+      {isMobile ? (
+        /* Mobile Layout */
+        <div className="flex-1 flex flex-col overflow-hidden relative">
           
-          {/* Add Elements Section */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-              <PlusCircle className="w-4 h-4 text-red-400" /> Add Elements
-            </h3>
-            
-            {/* Quick Text Element Creators */}
-            <div className="grid grid-cols-2 gap-2">
-              <button 
-                onClick={() => addTextNode()}
-                className="p-2 rounded-lg text-xs bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors flex items-center gap-1.5"
-              >
-                <Type className="w-3.5 h-3.5 text-blue-400" /> + Add Custom Text
-              </button>
-              
-              <button 
-                onClick={() => addTextNode("recipientName")}
-                className="p-2 rounded-lg text-xs bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors flex items-center gap-1.5"
-              >
-                <PlusCircle className="w-3.5 h-3.5 text-emerald-400" /> + Recipient Name
-              </button>
-
-              <button 
-                onClick={() => addTextNode("eventTitle")}
-                className="p-2 rounded-lg text-xs bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors flex items-center gap-1.5"
-              >
-                <PlusCircle className="w-3.5 h-3.5 text-purple-400" /> + Event Title
-              </button>
-
-              <button 
-                onClick={() => addTextNode("eventDate")}
-                className="p-2 rounded-lg text-xs bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors flex items-center gap-1.5"
-              >
-                <PlusCircle className="w-3.5 h-3.5 text-amber-400" /> + Event Date
-              </button>
-              
-              <button 
-                onClick={() => addTextNode("uniqueCode")}
-                className="p-2 rounded-lg text-xs bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors flex items-center gap-1.5 col-span-2"
-              >
-                <PlusCircle className="w-3.5 h-3.5 text-cyan-400" /> + Certificate ID (Unique Code)
-              </button>
-            </div>
-
-            {/* Quick Shape Element Creators */}
-            <div className="grid grid-cols-3 gap-2 pt-1">
-              <button 
-                onClick={() => addShapeNode("rect")}
-                className="p-2 rounded-lg text-xs bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors flex flex-col items-center gap-1"
-              >
-                <Square className="w-4 h-4 text-amber-500" /> Rect
-              </button>
-              <button 
-                onClick={() => addShapeNode("circle")}
-                className="p-2 rounded-lg text-xs bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors flex flex-col items-center gap-1"
-              >
-                <Circle className="w-4 h-4 text-emerald-500" /> Circle
-              </button>
-              <button 
-                onClick={() => addShapeNode("line")}
-                className="p-2 rounded-lg text-xs bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors flex flex-col items-center gap-1"
-              >
-                <Minus className="w-4 h-4 text-rose-500" /> Line
-              </button>
-            </div>
-          </div>
-
-          <div className="w-full h-px bg-zinc-800/50" />
-
-          {/* Canvas Actions */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-              <Settings2 className="w-4 h-4 text-blue-400" /> Studio Actions
-            </h3>
-            <div className="grid grid-cols-3 gap-2">
-              <button 
-                onClick={() => setIsCropping(!isCropping)}
-                className={`p-2 rounded-lg text-xs flex flex-col items-center justify-center gap-1.5 transition-colors border ${isCropping ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700 text-slate-300'}`}
-              >
-                <Crop className="w-3.5 h-3.5" /> Crop
-              </button>
-              <button onClick={handleCut} disabled={!selectedId} className="p-2 rounded-lg text-xs flex flex-col items-center justify-center gap-1.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors disabled:opacity-30">
-                <Scissors className="w-3.5 h-3.5" /> Cut
-              </button>
-              <button onClick={handlePaste} disabled={!clipboard} className="p-2 rounded-lg text-xs flex flex-col items-center justify-center gap-1.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-slate-300 transition-colors disabled:opacity-30">
-                <ClipboardPaste className="w-3.5 h-3.5" /> Paste
-              </button>
-            </div>
-          </div>
-
-          {/* Selected Element Customizer */}
-          <AnimatePresence>
-            {selectedNode && (
-              <motion.div 
-                initial={{ opacity: 0, height: 0 }} 
-                animate={{ opacity: 1, height: "auto" }} 
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-4 pt-2 border-t border-zinc-800/80"
-              >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                    <Settings2 className="w-4 h-4 text-pink-400" /> Property Editor
-                  </h3>
-                  <button 
-                    onClick={() => handleDeleteNode(selectedNode.id)}
-                    className="p-1 rounded bg-red-950/40 border border-red-900/30 text-red-400 hover:bg-red-900 hover:text-white transition-colors"
-                    title="Delete Element"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                {/* Text Specific Settings */}
-                {selectedNode.type === "text" && (
-                  <div className="space-y-3 bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80">
-                    <div>
-                      <label className="text-[10px] text-slate-500 uppercase">Text Content</label>
-                      <textarea 
-                        className="ck-input text-xs w-full mt-1.5 bg-black/40 border-zinc-800 focus:border-red-500 text-slate-200"
-                        rows={2}
-                        value={selectedNode.text || ""}
-                        onChange={(e) => updateSelectedNode({ text: e.target.value })}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-[10px] text-slate-500 uppercase">Font Size</label>
-                        <div className="flex items-center gap-2 mt-1">
-                          <input 
-                            type="range" min="10" max="100" step="1" 
-                            className="w-full accent-red-500"
-                            value={selectedNode.fontSize || 16}
-                            onChange={(e) => updateSelectedNode({ fontSize: parseInt(e.target.value) || 16 })}
-                          />
-                          <span className="text-xs font-mono w-6 text-right">{selectedNode.fontSize}</span>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-slate-500 uppercase">Tracking</label>
-                        <div className="flex items-center gap-2 mt-1">
-                          <input 
-                            type="range" min="-3" max="25" step="1" 
-                            className="w-full accent-red-500"
-                            value={selectedNode.tracking || 0}
-                            onChange={(e) => updateSelectedNode({ tracking: parseInt(e.target.value) || 0 })}
-                          />
-                          <span className="text-xs font-mono w-6 text-right">{selectedNode.tracking}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-[10px] text-slate-500 uppercase">Font Family</label>
-                        <select 
-                          className="ck-input text-xs mt-1 w-full bg-black/50 border-zinc-800"
-                          value={selectedNode.fontFamily || "sans-serif"}
-                          onChange={(e) => updateSelectedNode({ fontFamily: e.target.value })}
-                        >
-                          <option value="sans-serif">Sans-Serif (Inter)</option>
-                          <option value="serif">Serif (Playfair)</option>
-                          <option value="mono">Monospace (Share Tech)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-slate-500 uppercase">Placeholder Type</label>
-                        <select 
-                          className="ck-input text-xs mt-1 w-full bg-black/50 border-zinc-800"
-                          value={selectedNode.isPlaceholder ? (selectedNode.placeholderType || "recipientName") : "none"}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === "none") {
-                              updateSelectedNode({ isPlaceholder: false, placeholderType: undefined });
-                            } else {
-                              updateSelectedNode({ isPlaceholder: true, placeholderType: val });
-                            }
-                          }}
-                        >
-                          <option value="none">Normal Text</option>
-                          <option value="recipientName">Recipient Name</option>
-                          <option value="eventTitle">Event Title</option>
-                          <option value="eventDate">Event Date</option>
-                          <option value="uniqueCode">Certificate ID</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Formatting Styles */}
-                    <div className="flex items-center gap-2">
-                      <div className="flex bg-black/30 border border-zinc-800 rounded-lg p-0.5">
-                        <button 
-                          onClick={() => {
-                            const isBold = selectedNode.fontStyle?.includes("bold");
-                            const isItalic = selectedNode.fontStyle?.includes("italic");
-                            let style = "normal";
-                            if (isBold && isItalic) style = "italic";
-                            else if (isBold) style = "normal";
-                            else if (isItalic) style = "bold italic";
-                            else style = "bold";
-                            updateSelectedNode({ fontStyle: style });
-                          }}
-                          className={`p-1.5 rounded hover:bg-zinc-800/80 transition-colors ${selectedNode.fontStyle?.includes("bold") ? "text-red-500 bg-zinc-800" : "text-slate-400"}`}
-                        >
-                          <Bold className="w-3.5 h-3.5" />
-                        </button>
-                        <button 
-                          onClick={() => {
-                            const isBold = selectedNode.fontStyle?.includes("bold");
-                            const isItalic = selectedNode.fontStyle?.includes("italic");
-                            let style = "normal";
-                            if (isBold && isItalic) style = "bold";
-                            else if (isItalic) style = "normal";
-                            else if (isBold) style = "bold italic";
-                            else style = "italic";
-                            updateSelectedNode({ fontStyle: style });
-                          }}
-                          className={`p-1.5 rounded hover:bg-zinc-800/80 transition-colors ${selectedNode.fontStyle?.includes("italic") ? "text-red-500 bg-zinc-800" : "text-slate-400"}`}
-                        >
-                          <Italic className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                      
-                      <div className="flex bg-black/30 border border-zinc-800 rounded-lg p-0.5 ml-auto">
-                        {(["left", "center", "right"] as const).map(align => (
-                          <button 
-                            key={align}
-                            onClick={() => updateSelectedNode({ align })}
-                            className={`p-1.5 rounded hover:bg-zinc-800/80 transition-colors ${selectedNode.align === align ? "text-red-500 bg-zinc-800" : "text-slate-400"}`}
-                          >
-                            {align === "left" && <AlignLeft className="w-3.5 h-3.5" />}
-                            {align === "center" && <AlignCenter className="w-3.5 h-3.5" />}
-                            {align === "right" && <AlignRight className="w-3.5 h-3.5" />}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Color */}
-                    <div>
-                      <label className="text-[10px] text-slate-500 uppercase">Text Color</label>
-                      <div className="flex items-center gap-2 mt-1.5 bg-black/30 p-1.5 rounded-lg border border-zinc-800">
-                        <input 
-                          type="color" 
-                          value={selectedNode.fill || "#000000"} 
-                          onChange={(e) => updateSelectedNode({ fill: e.target.value })}
-                          className="w-6 h-6 rounded cursor-pointer bg-transparent border-0 p-0"
-                        />
-                        <span className="text-xs text-slate-300 font-mono">{selectedNode.fill}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Shape Specific Settings */}
-                {selectedNode.type === "shape" && (
-                  <div className="space-y-3 bg-zinc-900/40 p-3 rounded-xl border border-zinc-800/80">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-[10px] text-slate-500 uppercase">Fill Color</label>
-                        <div className="flex items-center gap-2 mt-1 bg-black/30 p-1 rounded-lg border border-zinc-850">
-                          <input 
-                            type="color" 
-                            value={selectedNode.fill || "#B8860B"} 
-                            onChange={(e) => updateSelectedNode({ fill: e.target.value })}
-                            className="w-6 h-6 rounded cursor-pointer bg-transparent border-0 p-0"
-                          />
-                          <span className="text-[10px] text-slate-300 font-mono truncate">{selectedNode.fill}</span>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-slate-500 uppercase">Stroke/Border</label>
-                        <div className="flex items-center gap-2 mt-1 bg-black/30 p-1 rounded-lg border border-zinc-850">
-                          <input 
-                            type="color" 
-                            value={selectedNode.stroke || "#DAA520"} 
-                            onChange={(e) => updateSelectedNode({ stroke: e.target.value })}
-                            className="w-6 h-6 rounded cursor-pointer bg-transparent border-0 p-0"
-                          />
-                          <span className="text-[10px] text-slate-300 font-mono truncate">{selectedNode.stroke || "None"}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-[10px] text-slate-500 uppercase">Stroke Width</label>
-                        <div className="flex items-center gap-2 mt-1">
-                          <input 
-                            type="range" min="0" max="15" step="1" 
-                            className="w-full accent-red-500"
-                            value={selectedNode.strokeWidth || 0}
-                            onChange={(e) => updateSelectedNode({ strokeWidth: parseInt(e.target.value) || 0 })}
-                          />
-                          <span className="text-xs font-mono w-4 text-right">{selectedNode.strokeWidth || 0}</span>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-slate-500 uppercase">Corner Radius</label>
-                        <div className="flex items-center gap-2 mt-1">
-                          <input 
-                            type="range" min="0" max="100" step="1" 
-                            className="w-full accent-red-500"
-                            value={selectedNode.radius || 0}
-                            onChange={(e) => updateSelectedNode({ radius: parseInt(e.target.value) || 0 })}
-                          />
-                          <span className="text-xs font-mono w-4 text-right">{selectedNode.radius || 0}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Layer Ordering Controls */}
-                <div className="grid grid-cols-4 gap-1 p-1 bg-zinc-900/80 rounded-lg border border-zinc-800">
-                  <button onClick={() => moveLayer('back')} className="py-1 text-[9px] font-mono hover:text-white text-slate-400 bg-black/20 hover:bg-black/40 rounded transition-colors" title="Send to Back">To Back</button>
-                  <button onClick={() => moveLayer('down')} className="py-1 text-[9px] font-mono hover:text-white text-slate-400 bg-black/20 hover:bg-black/40 rounded transition-colors" title="Move Backward">Backwd</button>
-                  <button onClick={() => moveLayer('up')} className="py-1 text-[9px] font-mono hover:text-white text-slate-400 bg-black/20 hover:bg-black/40 rounded transition-colors" title="Move Forward">Forwd</button>
-                  <button onClick={() => moveLayer('front')} className="py-1 text-[9px] font-mono hover:text-white text-slate-400 bg-black/20 hover:bg-black/40 rounded transition-colors" title="Bring to Front">To Front</button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="w-full h-px bg-zinc-800/50" />
-
-          {/* Org Logo and Signature */}
-          <div className="space-y-4">
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-purple-400" /> Organization Logo
-              </h3>
-              <input type="file" accept="image/*" className="hidden" ref={logoInputRef} onChange={handleLogoUpload} />
-              <button onClick={() => logoInputRef.current?.click()} className="w-full py-2 bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 text-purple-300 rounded-lg text-xs transition-colors font-mono">
-                + UPLOAD_LOGO
-              </button>
-              {selectedNode?.isLogo && (
-                <div className="flex gap-1">
-                  <button onClick={() => placeLogo('top-left')} className="flex-1 py-1 bg-zinc-900 border border-zinc-800 rounded text-[10px] text-slate-400 hover:text-white">Top L</button>
-                  <button onClick={() => placeLogo('top-center')} className="flex-1 py-1 bg-zinc-900 border border-zinc-800 rounded text-[10px] text-slate-400 hover:text-white">Center</button>
-                  <button onClick={() => placeLogo('top-right')} className="flex-1 py-1 bg-zinc-900 border border-zinc-800 rounded text-[10px] text-slate-400 hover:text-white">Top R</button>
-                </div>
-              )}
-            </div>
-
-            <div className="w-full h-px bg-zinc-800/50" />
-
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                <PenTool className="w-4 h-4 text-blue-400" /> Faculty Signature
-              </h3>
-              <input 
-                className="ck-input text-xs py-1.5 px-3 bg-zinc-900 border-zinc-800 w-full" 
-                placeholder="Faculty Name (e.g. Dr. Anjali)" 
-                value={facultyName} onChange={e => setFacultyName(e.target.value)} 
-              />
-              <input 
-                className="ck-input text-xs py-1.5 px-3 bg-zinc-900 border-zinc-800 w-full" 
-                placeholder="Faculty Designation (e.g. Dean)" 
-                value={facultyTitle} onChange={e => setFacultyTitle(e.target.value)} 
-              />
-              <input type="file" accept="image/png" className="hidden" ref={signatureInputRef} onChange={handleSignatureUpload} />
-              <button onClick={() => signatureInputRef.current?.click()} className="w-full py-2 bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20 text-blue-300 rounded-lg text-xs transition-colors font-mono">
-                + UPLOAD_SIGNATURE_PNG
-              </button>
-            </div>
-          </div>
-
-        </div>
-
-        {/* CENTER CANVAS */}
-        <div className={`${
-          activeSidebarTab === "canvas" ? "flex" : "hidden lg:flex"
-        } flex-1 bg-zinc-950/80 relative flex flex-col`}>
-          <div className="flex-1 overflow-auto flex items-center justify-center p-4 sm:p-8">
+          {/* Top section: Always-visible Live Canvas */}
+          <div className="flex-1 min-h-[220px] max-h-[45vh] bg-zinc-950/80 relative flex flex-col justify-center items-center overflow-auto p-2">
             <KonvaEditor 
               nodes={nodes} 
               setNodes={setNodes} 
@@ -923,113 +1186,135 @@ function CertificateBuilderContent() {
               onCropApply={handleCropApply}
               scale={zoom}
             />
-          </div>
-
-          {/* BOTTOM BAR: Zoom Controls */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/60 backdrop-blur-md border border-zinc-800/50 px-4 py-2 rounded-full z-10">
-            <button onClick={() => setZoom(z => Math.max(0.35, z - 0.1))} className="p-1 hover:text-white text-slate-400"><ZoomOut className="w-4 h-4" /></button>
-            <span className="text-xs font-mono w-12 text-center text-slate-300">{Math.round(zoom * 100)}%</span>
-            <input type="range" min="0.35" max="2" step="0.05" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} className="w-20 sm:w-24 accent-white" />
-            <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="p-1 hover:text-white text-slate-400"><ZoomIn className="w-4 h-4" /></button>
-          </div>
-        </div>
-
-        {/* RIGHT SIDEBAR: Preset Templates, Theme Colors, & Uploaded Vault templates */}
-        <div className={`${
-          activeSidebarTab === "theme" ? "flex" : "hidden"
-        } lg:flex w-full lg:w-72 border-l border-zinc-800/50 bg-black/30 overflow-y-auto p-4 flex-col space-y-6 shrink-0 custom-scrollbar`}>
-          
-          {/* Preset Templates */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-              <Layout className="w-4 h-4 text-pink-400" /> Preset Layouts
-            </h3>
-            <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
-              {CERTIFICATE_TEMPLATES.map(t => (
-                <button 
-                  key={t.id} 
-                  onClick={() => handleTemplateSwitch(t.id)}
-                  className={`w-full text-left p-2 rounded-xl text-xs font-medium transition-all ${activeTemplate.id === t.id && !backgroundUrl ? 'bg-pink-500/20 border border-pink-500/50 text-pink-100' : 'bg-zinc-900 border border-zinc-800 text-slate-400 hover:bg-zinc-800'}`}
-                >
-                  <div className="flex items-center justify-between">
-                    {t.name}
-                    {activeTemplate.id === t.id && !backgroundUrl && <Check className="w-3.5 h-3.5 text-pink-400" />}
-                  </div>
-                  <div className="mt-2 flex gap-1">
-                    <div className="w-3.5 h-3.5 rounded-full border border-zinc-700" style={{ backgroundColor: t.theme.primary }} />
-                    <div className="w-3.5 h-3.5 rounded-full border border-zinc-700" style={{ backgroundColor: t.theme.background }} />
-                    <div className="w-3.5 h-3.5 rounded-full border border-zinc-700" style={{ backgroundColor: t.theme.accent }} />
-                  </div>
-                </button>
-              ))}
+            {/* Zoom Controls */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/60 backdrop-blur-md border border-zinc-800/50 px-3 py-1 rounded-full z-10 scale-90">
+              <button onClick={() => setZoom(z => Math.max(0.35, z - 0.1))} className="p-1 hover:text-white text-slate-400 bg-transparent border-0"><ZoomOut className="w-3.5 h-3.5" /></button>
+              <span className="text-[10px] font-mono w-10 text-center text-slate-300">{Math.round(zoom * 100)}%</span>
+              <input type="range" min="0.35" max="2" step="0.05" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} className="w-16 accent-white" />
+              <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="p-1 hover:text-white text-slate-400 bg-transparent border-0"><ZoomIn className="w-3.5 h-3.5" /></button>
             </div>
           </div>
 
-          <div className="w-full h-px bg-zinc-800/50" />
+          {/* Middle section: Tab navigation */}
+          <div className="flex border-y border-zinc-800/50 bg-[#080A0F]/90 shrink-0">
+            {[
+              { id: "theme", label: "Presets & Themes" },
+              { id: "tools", label: "Add Elements" },
+              { id: "properties", label: "Properties", disabled: !selectedId }
+            ].map(t => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setActiveSidebarTab(t.id as any)}
+                disabled={t.disabled}
+                className={`flex-1 py-2.5 text-[10px] sm:text-xs font-mono font-bold uppercase border-b-2 transition-all cursor-pointer disabled:opacity-30 ${
+                  activeSidebarTab === t.id 
+                    ? "border-[var(--ck-lime)] text-[var(--ck-lime)] bg-[var(--ck-lime)]/5" 
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
 
-          {/* User templates / uploaded backgrounds */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-              <Upload className="w-4 h-4 text-cyan-400" /> Uploaded Templates
-            </h3>
-            {userTemplates.length === 0 ? (
-              <p className="text-[10px] text-slate-500 text-center py-4 bg-zinc-900/20 rounded-xl border border-zinc-800/40">No uploaded templates found.</p>
-            ) : (
-              <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
-                {userTemplates.map(t => (
-                  <button 
-                    key={t.id} 
-                    onClick={() => handleUserTemplateSwitch(t)}
-                    className={`w-full text-left p-2 rounded-xl text-xs font-medium transition-all ${backgroundUrl.includes(t.fileUrl) ? 'bg-cyan-500/20 border border-cyan-500/50 text-cyan-100' : 'bg-zinc-900 border border-zinc-800 text-slate-400 hover:bg-zinc-800'}`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate flex-1">{t.name}</span>
-                      {backgroundUrl.includes(t.fileUrl) && <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
-                    </div>
-                    {t.fileUrl && (
-                      <div className="mt-2 h-14 w-full rounded bg-black border border-zinc-800 overflow-hidden relative">
-                        <img src={`${SERVER_BASE_URL}${t.fileUrl}`} alt={t.name} className="w-full h-full object-cover" />
-                      </div>
-                    )}
-                  </button>
-                ))}
+          {/* Bottom section: Active Tab Controls scrollable */}
+          <div className="h-[40vh] overflow-y-auto p-4 bg-[#080A0F] border-b border-zinc-850 flex flex-col gap-4 custom-scrollbar">
+            {activeSidebarTab === "theme" && (
+              <div className="space-y-4">
+                {themeColorsBlock()}
+                <div className="w-full h-px bg-zinc-800/50" />
+                {presetsBlock()}
+                <div className="w-full h-px bg-zinc-800/50" />
+                {uploadedTemplatesBlock()}
+              </div>
+            )}
+
+            {activeSidebarTab === "tools" && (
+              <div className="space-y-4">
+                {addElementsBlock()}
+                <div className="w-full h-px bg-zinc-800/50" />
+                {aiAssistantBlock()}
+                <div className="w-full h-px bg-zinc-800/50" />
+                {orgLogoBlock()}
+                <div className="w-full h-px bg-zinc-800/50" />
+                {facultySignatureBlock()}
+              </div>
+            )}
+
+            {activeSidebarTab === "properties" && selectedNode && (
+              <div className="space-y-4">
+                {propertyEditorBlock()}
               </div>
             )}
           </div>
 
-          <div className="w-full h-px bg-zinc-800/50" />
+        </div>
+      ) : (
+        /* Desktop Layout (3-column layout) */
+        <div className="flex flex-1 overflow-hidden relative">
+          
+          {/* LEFT SIDEBAR: Tools, Shapes, and Colors */}
+          <div className="w-80 border-r border-zinc-800/50 bg-[#0D0F14] overflow-y-auto p-4 flex flex-col space-y-5 shrink-0 custom-scrollbar">
+            {aiAssistantBlock()}
+            <div className="w-full h-px bg-zinc-800/50" />
+            {addElementsBlock()}
+            <div className="w-full h-px bg-zinc-800/50" />
+            {studioActionsBlock()}
+            
+            {/* Selected Element Customizer */}
+            <AnimatePresence>
+              {selectedNode && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="space-y-4 pt-2 border-t border-zinc-800/80">
+                  {propertyEditorBlock()}
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+            <div className="w-full h-px bg-zinc-800/50" />
+            {orgLogoBlock()}
+            <div className="w-full h-px bg-zinc-800/50" />
+            {facultySignatureBlock()}
+          </div>
 
-          {/* Theme Colors Editor */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-              <Palette className="w-4 h-4 text-emerald-400" /> Theme Colors
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { key: 'primary', label: 'Primary' },
-                { key: 'background', label: 'Background' },
-                { key: 'text', label: 'Text' },
-                { key: 'accent', label: 'Accent' }
-              ].map(c => (
-                <div key={c.key} className="space-y-1">
-                  <label className="text-[9px] text-slate-500 uppercase font-mono">{c.label}</label>
-                  <div className="flex items-center gap-1.5 bg-zinc-900 p-1.5 rounded-lg border border-zinc-800">
-                    <input 
-                      type="color" 
-                      value={themeColors[c.key as keyof ThemeColors] || "#ffffff"} 
-                      onChange={(e) => handleColorChange(c.key as keyof ThemeColors, e.target.value)}
-                      className="w-5 h-5 rounded cursor-pointer bg-transparent border-0 p-0"
-                    />
-                    <span className="text-[10px] text-slate-300 font-mono truncate">{themeColors[c.key as keyof ThemeColors]}</span>
-                  </div>
-                </div>
-              ))}
+          {/* CENTER CANVAS */}
+          <div className="flex-1 bg-zinc-950/80 relative flex flex-col">
+            <div className="flex-1 overflow-auto flex items-center justify-center p-8">
+              <KonvaEditor 
+                nodes={nodes} 
+                setNodes={setNodes} 
+                eventTitle={getEventTitle()} 
+                eventDate={getEventDate()} 
+                backgroundColor={themeColors.background}
+                themeColor={themeColors.primary}
+                backgroundUrl={backgroundUrl || undefined}
+                selectedId={selectedId}
+                setSelectedId={setSelectedId}
+                isCropping={isCropping}
+                onCropApply={handleCropApply}
+                scale={zoom}
+              />
+            </div>
+            {/* Zoom Controls */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/60 backdrop-blur-md border border-zinc-800/50 px-4 py-2 rounded-full z-10">
+              <button onClick={() => setZoom(z => Math.max(0.35, z - 0.1))} className="p-1 hover:text-white text-slate-400 bg-transparent border-0"><ZoomOut className="w-4 h-4" /></button>
+              <span className="text-xs font-mono w-12 text-center text-slate-300">{Math.round(zoom * 100)}%</span>
+              <input type="range" min="0.35" max="2" step="0.05" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} className="w-24 accent-white" />
+              <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="p-1 hover:text-white text-slate-400 bg-transparent border-0"><ZoomIn className="w-4 h-4" /></button>
             </div>
           </div>
 
-        </div>
+          {/* RIGHT SIDEBAR: Preset Templates, Theme Colors, & Uploaded Vault templates */}
+          <div className="w-72 border-l border-zinc-800/50 bg-[#0D0F14] overflow-y-auto p-4 flex flex-col space-y-6 shrink-0 custom-scrollbar">
+            {presetsBlock()}
+            <div className="w-full h-px bg-zinc-800/50" />
+            {uploadedTemplatesBlock()}
+            <div className="w-full h-px bg-zinc-800/50" />
+            {themeColorsBlock()}
+          </div>
 
-      </div>
+        </div>
+      )}
 
       {/* Toast Notification */}
       <AnimatePresence>
@@ -1049,7 +1334,7 @@ function CertificateBuilderContent() {
             {toast.type === "success" && <CheckCircle className="w-5 h-5 text-emerald-400" />}
             {toast.type === "error" && <AlertCircle className="w-5 h-5 text-red-400" />}
             <span className="text-sm font-mono tracking-tight">{toast.message}</span>
-            <button onClick={() => setToast(null)} className="ml-2 hover:opacity-80 p-0.5 rounded bg-black/30">
+            <button onClick={() => setToast(null)} className="ml-2 hover:opacity-80 p-0.5 rounded bg-black/30 border-0 cursor-pointer">
               <X className="w-3.5 h-3.5" />
             </button>
           </motion.div>
@@ -1061,7 +1346,7 @@ function CertificateBuilderContent() {
 
 export default function CertificateBuilderPage() {
   return (
-    <Suspense fallback={<div className="h-screen bg-zinc-950 flex items-center justify-center text-white">Loading Studio...</div>}>
+    <Suspense fallback={<div className="h-screen bg-zinc-950 flex items-center justify-center text-white font-mono">Loading Studio...</div>}>
       <CertificateBuilderContent />
     </Suspense>
   );

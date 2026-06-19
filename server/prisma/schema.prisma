@@ -124,6 +124,8 @@ model ApprovalRequest {
 
   steps         ApprovalStep[]
 
+  @@index([status])
+  @@index([requesterId])
   @@map("approval_requests")
 }
 
@@ -144,6 +146,7 @@ model ApprovalStep {
   createdAt   DateTime       @default(now())
 
   @@unique([requestId, level])
+  @@index([approverId])
   @@map("approval_steps")
 }
 
@@ -183,6 +186,7 @@ model Event {
   teams                Team[]
   appreciationPoints   AppreciationPoint[]
 
+  @@index([isPublished, isApproved, endDate])
   @@map("events")
 }
 
@@ -204,6 +208,8 @@ model Team {
   members       TeamMember[]
   registrations EventRegistration[]
 
+  @@index([eventId])
+  @@index([leaderId])
   @@map("teams")
 }
 
@@ -251,6 +257,7 @@ model Attendance {
   user      User  @relation(fields: [userId], references: [id])
   event     Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
+  @@index([userId, eventId])
   @@map("attendance")
 }
 

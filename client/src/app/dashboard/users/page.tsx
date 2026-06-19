@@ -91,18 +91,18 @@ export default function UsersPage() {
 
       {/* Pending Approvals Banner */}
       {pendingUsers.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="ck-card p-5 mb-6 border-l-4 border-red-500 relative overflow-hidden bg-red-950/20">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-3xl pointer-events-none" />
-          <h3 className="font-semibold mb-3 flex items-center gap-2 uppercase font-mono tracking-tighter text-red-500 text-sm">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="ck-card p-5 mb-6 border-l-4 border-[#FF4D00] relative overflow-hidden bg-[#FF4D00]/5 shadow-[0_0_15px_rgba(255,77,0,0.08)] border-zinc-800">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF4D00]/5 blur-3xl pointer-events-none" />
+          <h3 className="font-semibold mb-3 flex items-center gap-2 uppercase font-mono tracking-tighter text-[#FF4D00] text-sm">
             <UserCheck className="w-5 h-5" /> {pendingUsers.length} PENDING AUTHORIZATION
           </h3>
           <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
             {pendingUsers.map((u) => (
-              <div key={u.id} className="flex items-center justify-between p-3.5 rounded-xl border border-red-900/20 bg-black/40 hover:border-red-900/40 transition duration-200">
+              <div key={u.id} className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-800 bg-black/40 hover:border-[#FF4D00]/30 transition duration-200">
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-white">{u.name}</p>
-                    {u.studentId && <span className="text-[9px] font-mono bg-red-950/40 border border-red-900/30 px-1.5 py-0.5 rounded text-red-400">ID: {u.studentId}</span>}
+                    {u.studentId && <span className="text-[9px] font-mono bg-[#FF4D00]/10 border border-[#FF4D00]/25 px-1.5 py-0.5 rounded text-[#FF4D00]">ID: {u.studentId}</span>}
                   </div>
                   <p className="text-[10px] font-mono mt-1 text-zinc-500 uppercase">
                     {u.email.toLowerCase()} {u.phone ? `// TEL: ${u.phone}` : ""} {u.department ? `// DEPT: ${u.department}` : ""} {u.semester ? `// SEM: ${u.semester}` : ""}
@@ -120,8 +120,8 @@ export default function UsersPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center mb-6">
         <div className="relative flex-1 max-w-sm ck-search-container ck-input-icon-wrapper">
-          <Search className="w-4 h-4 text-red-500/50" />
-          <input className="ck-input ck-search-input" placeholder="SEARCH BY IDENTITY..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Search className="w-4 h-4" style={{ color: "#CCFF00" }} />
+          <input className="ck-input ck-search-input pl-9" placeholder="SEARCH BY IDENTITY..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <select className="ck-input w-auto text-xs py-2 font-mono" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
           <option value="">ALL ROLES</option>
@@ -131,7 +131,7 @@ export default function UsersPage() {
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-3 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-3 border-violet-500/30 border-t-cyan-400 rounded-full animate-spin" />
         </div>
       ) : approvedUsers.length === 0 ? (
         <div className="ck-card p-12 text-center">
@@ -155,12 +155,12 @@ export default function UsersPage() {
               </thead>
               <tbody>
                 {paginatedUsers.map((u) => (
-                  <tr key={u.id} className="group hover:bg-red-500/[0.02]">
+                  <tr key={u.id} className="group hover:bg-violet-500/[0.02]">
                     {/* Profile & ID */}
                     <td>
                       <div className="flex items-center gap-2.5">
                         {u.avatarUrl ? (
-                          <img src={`${SERVER_BASE_URL}${u.avatarUrl}`} alt="Avatar" className="w-9 h-9 rounded-lg object-cover border border-red-500/20" />
+                          <img src={`${SERVER_BASE_URL}${u.avatarUrl}`} alt="Avatar" className="w-9 h-9 rounded-lg object-cover border border-violet-500/20" />
                         ) : (
                           <DefaultAvatar className="w-9 h-9" />
                         )}
@@ -177,14 +177,14 @@ export default function UsersPage() {
                     <td>
                       <div className="space-y-0.5 font-mono">
                         <p className="text-xs text-zinc-300 lowercase flex items-center gap-1.5">
-                          <Mail className="w-3.5 h-3.5 text-red-500/40" /> {u.email}
+                          <Mail className="w-3.5 h-3.5 text-[#CCFF00]/60" /> {u.email}
                         </p>
                         {u.phone ? (
                           <p className="text-[10px] text-zinc-500 flex items-center gap-1.5">
-                            <Phone className="w-3 h-3 text-zinc-650" /> {u.phone}
+                            <Phone className="w-3 h-3 text-zinc-600" /> {u.phone}
                           </p>
                         ) : (
-                          <p className="text-[10px] text-zinc-600 italic pl-5">No phone number</p>
+                          <p className="text-[10px] text-zinc-650 italic pl-5">No phone number</p>
                         )}
                       </div>
                     </td>
@@ -193,7 +193,7 @@ export default function UsersPage() {
                     <td>
                       <div className="space-y-0.5">
                         <p className="text-xs font-semibold text-zinc-300 font-mono uppercase flex items-center gap-1.5">
-                          <GraduationCap className="w-3.5 h-3.5 text-red-500/40" /> {u.department || "N/A"}
+                          <GraduationCap className="w-3.5 h-3.5 text-[#FF4D00]/60" /> {u.department || "N/A"}
                         </p>
                         <p className="text-[10px] text-zinc-500 font-mono uppercase pl-5">
                           {u.semester ? `SEM: ${u.semester}` : "SEM: —"} / {u.institute || "GUEST"}
@@ -204,7 +204,7 @@ export default function UsersPage() {
                     {/* Security Role */}
                     <td>
                       {user?.role && ["FACULTY", "STUDENT_COORDINATOR"].includes(user.role) ? (
-                        <select className="ck-input text-[10px] py-1 px-2.5 w-auto font-mono border-zinc-800 focus:border-red-500/40" value={u.role} onChange={(e) => handleRoleChange(u.id, e.target.value)}>
+                        <select className="ck-input text-[10px] py-1 px-2.5 w-auto font-mono border-zinc-800 focus:border-cyan-500/40" value={u.role} onChange={(e) => handleRoleChange(u.id, e.target.value)}>
                           {ROLES.map((r) => <option key={r} value={r}>{r.replace(/_/g, " ")}</option>)}
                         </select>
                       ) : (
@@ -217,7 +217,7 @@ export default function UsersPage() {
                       {u.isActive ? (
                         <span className="ck-badge ck-badge-success text-[10px] tracking-wider">ACTIVE</span>
                       ) : (
-                        <span className="ck-badge ck-badge-danger text-[10px] tracking-wider">INACTIVE</span>
+                        <span className="ck-badge bg-rose-950/40 border border-rose-500/30 text-rose-400 text-[10px] tracking-wider">INACTIVE</span>
                       )}
                     </td>
 
@@ -228,7 +228,7 @@ export default function UsersPage() {
                           onClick={() => handleToggleActive(u.id, u.isActive)} 
                           className={`text-[10px] uppercase font-mono tracking-wider px-3 py-1 rounded border transition-all duration-300 ${
                             u.isActive 
-                              ? "text-red-400 border-red-900/30 hover:bg-red-500/10 hover:border-red-500/50" 
+                              ? "text-rose-450 border-rose-900/30 hover:bg-rose-500/10 hover:border-rose-500/50" 
                               : "text-emerald-400 border-emerald-900/30 hover:bg-emerald-500/10 hover:border-emerald-500/50"
                           }`}
                         >
@@ -269,7 +269,7 @@ export default function UsersPage() {
                       onClick={() => setCurrentPage(pageNum)}
                       className={`w-7 h-7 rounded-lg border text-[10px] font-bold font-mono transition-all duration-200 ${
                         isCurrent
-                          ? "bg-red-650 border-red-400 text-white shadow-[0_0_8px_rgba(220,38,38,0.4)]"
+                          ? "bg-[#CCFF00] border-[#CCFF00] text-black shadow-[0_0_8px_rgba(204,255,0,0.3)]"
                           : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 text-zinc-400 hover:text-white"
                       }`}
                     >

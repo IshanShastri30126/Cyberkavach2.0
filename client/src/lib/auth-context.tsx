@@ -18,6 +18,7 @@ export interface User {
   institute?: string;
   semester?: string;
   isApproved: boolean;
+  clubId?: string;
 }
 
 interface AuthContextType {
@@ -26,7 +27,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: (credential: string) => Promise<void>;
-  register: (name: string, email: string, password: string, extra?: { studentId?: string; phone?: string; department?: string; institute?: string; semester?: string }) => Promise<void>;
+  register: (name: string, email: string, password: string, extra?: { studentId?: string; phone?: string; department?: string; institute?: string; semester?: string; clubId?: string; newClubName?: string; newClubSlug?: string }) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -41,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await api<{ user: User }>("/auth/me", { token: accessToken });
       setUser(data.user);
-      setToken(accessToken);
+      setToken(Cookies.get("accessToken") || accessToken);
     } catch {
       setUser(null);
       setToken(null);
@@ -51,11 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const savedToken = Cookies.get("accessToken");
-    if (savedToken) {
-      fetchMe(savedToken).finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
-    }
+    fetchMe(savedToken || "").finally(() => setIsLoading(false));
   }, [fetchMe]);
 
   const login = async (email: string, password: string) => {
@@ -78,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(data.accessToken);
   };
 
-  const register = async (name: string, email: string, password: string, extra?: { studentId?: string; phone?: string; department?: string; institute?: string; semester?: string }) => {
+  const register = async (name: string, email: string, password: string, extra?: { studentId?: string; phone?: string; department?: string; institute?: string; semester?: string; clubId?: string; newClubName?: string; newClubSlug?: string }) => {
     const data = await api<{ user: User; accessToken: string }>("/auth/register", {
       method: "POST",
       body: JSON.stringify({ name, email, password, ...extra }),

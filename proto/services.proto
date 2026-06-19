@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package cyberkavach;
+
+// ─── 1. Auth & Identity Service ──────────────────────────────
+service AuthService {
+  rpc ValidateToken (TokenRequest) returns (TokenResponse);
+  rpc GetUserRole (UserRoleRequest) returns (UserRoleResponse);
+}
+
+message TokenRequest {
+  string token = 1;
+}
+
+message TokenResponse {
+  bool valid = 1;
+  string userId = 2;
+  string role = 3;
+  string email = 4;
+}
+
+message UserRoleRequest {
+  string userId = 1;
+}
+
+message UserRoleResponse {
+  string role = 1;
+  bool isApproved = 2;
+  bool isActive = 3;
+}
+
+// ─── 2. Event & Team Service ─────────────────────────────────
+service EventService {
+  rpc GetEventDetails (EventRequest) returns (EventResponse);
+  rpc VerifyTeamStatus (TeamVerifyRequest) returns (TeamVerifyResponse);
+}
+
+message EventRequest {
+  string eventId = 1;
+}
+
+message EventResponse {
+  string id = 1;
+  string title = 2;
+  string startDate = 3;
+  string endDate = 4;
+  int32 maxCapacity = 5;
+  bool isPublished = 6;
+}
+
+message TeamVerifyRequest {
+  string teamCode = 1;
+  string eventId = 2;
+}
+
+message TeamVerifyResponse {
+  bool valid = 1;
+  string teamId = 2;
+  string leaderId = 3;
+  repeated string memberIds = 4;
+  bool isDisqualified = 5;
+}

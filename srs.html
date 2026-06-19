@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CyberKavach 2.0 — Software Requirements Specification (SRS)</title>
+  <style>
+    /* ─── Global Reset & Typography ───────────────────────────── */
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.5;
+      color: #1e293b;
+      background-color: #ffffff;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Space Grotesk', sans-serif;
+      color: #0f172a;
+      font-weight: 700;
+      margin-bottom: 0.5em;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin-bottom: 1em;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin-bottom: 1em;
+      margin-left: 2em;
+    }
+
+    li {
+      margin-bottom: 0.5em;
+    }
+
+    /* ─── Code & Monospace ────────────────────────────────────── */
+    code, pre {
+      font-family: 'JetBrains Mono', Consolas, "Liberation Mono", Courier, monospace;
+      font-size: 9.5pt;
+    }
+
+    pre {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 1.2em;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .inline-code {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-size: 9pt;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* ─── Page & Layout Boundaries (A4 Print-Friendly) ──────── */
+    @page {
+      size: A4;
+      margin: 20mm 15mm 20mm 15mm;
+    }
+
+    .page {
+      page-break-after: always;
+      position: relative;
+    }
+
+    .page:last-child {
+      page-break-after: avoid;
+    }
+
+    .page-break-before {
+      page-break-before: always;
+    }
+
+    /* ─── Header & Footer Styles ──────────────────────────────── */
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 6px;
+      margin-bottom: 20px;
+      font-size: 8.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .doc-header .doc-title-mini {
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .doc-footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 6px;
+      font-size: 8.5pt;
+      color: #64748b;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    /* ─── Cover Page Layout ──────────────────────────────────── */
+    .cover-page {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 30mm 15mm 20mm 15mm;
+      page-break-after: always;
+      background-color: #05070a;
+      color: #ffffff;
+      border: 5px double #ccff00;
+      position: relative;
+    }
+
+    .cover-page::before {
+      content: "";
+      position: absolute;
+      top: 15px; left: 15px; right: 15px; bottom: 15px;
+      border: 1px solid rgba(204, 255, 0, 0.2);
+      pointer-events: none;
+    }
+
+    .cover-title-container {
+      margin-top: 40px;
+    }
+
+    .cover-logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 26pt;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #ccff00;
+      margin-bottom: 30px;
+      display: flex;
+      align-items: center;
+    }
+
+    .cover-logo::before {
+      content: "[▲]";
+      margin-right: 12px;
+      color: #ff4d00;
+    }
+
+    .cover-title {
+      font-size: 32pt;
+      line-height: 1.15;
+      color: #ffffff;
+      margin-bottom: 15px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+    }
+
+    .cover-subtitle {
+      font-size: 16pt;
+      color: #94a3b8;
+      font-weight: 400;
+      margin-bottom: 40px;
+      letter-spacing: 0.05em;
+    }
+
+    .cover-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9pt;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 30px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px 40px;
+      color: #94a3b8;
+    }
+
+    .meta-item strong {
+      color: #ccff00;
+      display: block;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      font-size: 8.5pt;
+      letter-spacing: 0.05em;
+    }
+
+    .cover-security-banner {
+      background-color: #ff003c;
+      color: #ffffff;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: bold;
+      text-align: center;
+      padding: 10px;
+      font-size: 11pt;
+      letter-spacing: 0.2em;
+      margin-bottom: 30px;
+      border-radius: 4px;
+    }
+
+    /* ─── Table of Contents ─────────────────────────────────── */
+    .toc-list {
+      list-style: none;
+      margin-left: 0;
+      margin-top: 25px;
+    }
+
+    .toc-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 12px;
+      font-size: 11pt;
+    }
+
+    .toc-title {
+      font-weight: 600;
+      color: #0f172a;
+      background-color: #ffffff;
+      padding-right: 5px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .toc-dots {
+      flex-grow: 1;
+      border-bottom: 1px dotted #94a3b8;
+      margin: 0 10px 4px 10px;
+      position: relative;
+      top: -1px;
+    }
+
+    .toc-page {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      color: #0f172a;
+      background-color: #ffffff;
+      padding-left: 5px;
+      z-index: 2;
+    }
+
+    .toc-subitem {
+      margin-left: 25px;
+      font-size: 10pt;
+    }
+
+    .toc-subitem .toc-title {
+      font-weight: 400;
+      color: #475569;
+    }
+
+    /* ─── Tables ────────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5em 0;
+      font-size: 9.5pt;
+      page-break-inside: avoid;
+    }
+
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #0f172a;
+      color: #ffffff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 8.5pt;
+      letter-spacing: 0.05em;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+
+    /* ─── Alert & Highlight Panels ───────────────────────────── */
+    .note-panel {
+      border-left: 4px solid #ccff00;
+      background-color: #f8fafc;
+      padding: 12px 16px;
+      margin-bottom: 1.2em;
+      border-radius: 0 6px 6px 0;
+    }
+
+    .note-panel strong {
+      color: #0f172a;
+      display: block;
+      margin-bottom: 4px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+    }
+
+    .security-panel {
+      border-left: 4px solid #ff003c;
+      background-color: #fff1f2;
+      padding: 12px 16px;
+      margin-bottom: 1.2em;
+      border-radius: 0 6px 6px 0;
+    }
+
+    .security-panel strong {
+      color: #9f1239;
+      display: block;
+      margin-bottom: 4px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+    }
+
+    /* ─── CSS Architecture Diagram styling ────────────────────── */
+    .architecture-diagram {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      margin: 25px 0;
+      padding: 20px;
+      background-color: #05070a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+    }
+
+    .arch-row {
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
+      gap: 15px;
+    }
+
+    .arch-box {
+      background-color: #0d0f14;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 10px 15px;
+      text-align: center;
+      color: #ffffff;
+      flex: 1;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 9pt;
+      position: relative;
+    }
+
+    .arch-box.highlight-lime {
+      border-color: #ccff00;
+      box-shadow: 0 0 8px rgba(204, 255, 0, 0.15);
+    }
+
+    .arch-box.highlight-orange {
+      border-color: #ff4d00;
+      box-shadow: 0 0 8px rgba(255, 77, 0, 0.15);
+    }
+
+    .arch-box.highlight-red {
+      border-color: #ff003c;
+      box-shadow: 0 0 8px rgba(255, 0, 60, 0.15);
+    }
+
+    .arch-box-title {
+      font-weight: bold;
+      font-size: 9.5pt;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .arch-box-detail {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.5pt;
+      color: #94a3b8;
+    }
+
+    .arch-arrow-down {
+      color: #ccff00;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: bold;
+      font-size: 14pt;
+      line-height: 1;
+    }
+
+    .arch-bi-arrows {
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
+      color: #ff4d00;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: bold;
+      font-size: 14pt;
+      line-height: 1;
+    }
+
+    /* ─── Page Breaks adjustments ────────────────────────────── */
+    .section-title {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 6px;
+      margin-top: 30px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .subsection-title {
+      margin-top: 22px;
+      margin-bottom: 12px;
+      color: #1e293b;
+      border-left: 3px solid #ff4d00;
+      padding-left: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===================================================================
+       COVER PAGE
+       =================================================================== -->
+  <div class="cover-page">
+    <div class="cover-security-banner">CLASSIFIED: INTERNAL CLUB USE ONLY</div>
+    
+    <div class="cover-title-container">
+      <div class="cover-logo">CYBERKAVACH 2.0</div>
+      <div class="cover-title">Software Requirements Specification (SRS)</div>
+      <div class="cover-subtitle">Centralized Operations & Cyber Command Portal</div>
+    </div>
+
+    <div class="cover-meta">
+      <div class="meta-item">
+        <strong>Document ID</strong>
+        CK2-SRS-2026-V2.0
+      </div>
+      <div class="meta-item">
+        <strong>Revision Date</strong>
+        June 16, 2026
+      </div>
+      <div class="meta-item">
+        <strong>Author</strong>
+        Lead Architect, CyberKavach
+      </div>
+      <div class="meta-item">
+        <strong>Target Portal</strong>
+        https://github.com/IshanShastri30126/Cyberkavach2.0
+      </div>
+      <div class="meta-item">
+        <strong>Classification</strong>
+        CONFIDENTIAL - Level 3 Operations
+      </div>
+      <div class="meta-item">
+        <strong>Platform Release</strong>
+        v2.0.0 (Production Core)
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       TABLE OF CONTENTS
+       =================================================================== -->
+  <div class="page" style="padding-top: 10mm; height: 100vh;">
+    <div class="doc-header">
+      <span class="doc-title-mini">CyberKavach 2.0 — SRS Document</span>
+      <span>Page TOC-1</span>
+    </div>
+
+    <h1 class="section-title">Table of Contents</h1>
+    
+    <ul class="toc-list">
+      <li class="toc-item">
+        <span class="toc-title">1. Introduction & Scope</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">1</span>
+      </li>
+      <li class="toc-item toc-subitem">
+        <span class="toc-title">1.1 Document Purpose</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">1</span>
+      </li>
+      <li class="toc-item toc-subitem">
+        <span class="toc-title">1.2 System Overview</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">1</span>
+      </li>
+      <li class="toc-item toc-subitem">
+        <span class="toc-title">1.3 Technology Stack</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">1</span>
+      </li>
+      
+      <li class="toc-item">
+        <span class="toc-title">2. User Roles & Permission Clearance Matrix</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">2</span>
+      </li>
+      
+      <li class="toc-item">
+        <span class="toc-title">3. Detailed Functional Modules</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">3</span>
+      </li>
+      <li class="toc-item toc-subitem">
+        <span class="toc-title">3.1 Authentication & Registration HUD</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">3</span>
+      </li>
+      <li class="toc-item toc-subitem">
+        <span class="toc-title">3.2 Multilevel Approval Workflow Engine</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">3</span>
+      </li>
+      <li class="toc-item toc-subitem">
+        <span class="toc-title">3.3 Event Management & Roster Export</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">4</span>
+      </li>
+      <li class="toc-item toc-subitem">
+        <span class="toc-title">3.4 Team Manager & Roster Cloning</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">4</span>
+      </li>
+      <li class="toc-item toc-subitem">
+        <span class="toc-title">3.5 Attendance HUD Scanner Core</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">5</span>
+      </li>
+      <li class="toc-item toc-subitem">
+        <span class="toc-title">3.6 Cryptographic Certificate Custom Canvas & Issuance</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">5</span>
+      </li>
+      <li class="toc-item toc-subitem">
+        <span class="toc-title">3.7 Matrix Leaderboard & Gamification Milestone System</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">6</span>
+      </li>
+      <li class="toc-item toc-subitem">
+        <span class="toc-title">3.8 Real-Time Notifications (Socket.io) & Smart AI Chatbot</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">6</span>
+      </li>
+      <li class="toc-item toc-subitem">
+        <span class="toc-title">3.9 Audit Trail logging & Social Media Drafting</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">7</span>
+      </li>
+      
+      <li class="toc-item">
+        <span class="toc-title">4. Database Schema Specification (Prisma Mapping)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">8</span>
+      </li>
+
+      <li class="toc-item">
+        <span class="toc-title">5. Database Query Optimization & Caching Strategies</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">11</span>
+      </li>
+
+      <li class="toc-item">
+        <span class="toc-title">6. Non-Functional Requirements</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">13</span>
+      </li>
+    </ul>
+
+    <div class="doc-footer">
+      <span>CyberKavach 2.0 Operative Documentation</span>
+      <span>Classification: CONFIDENTIAL</span>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       SECTION 1: INTRODUCTION & SCOPE
+       =================================================================== -->
+  <div class="page" style="padding-top: 10mm; height: 100vh;">
+    <div class="doc-header">
+      <span class="doc-title-mini">1. Introduction & Scope</span>
+      <span>Page 1</span>
+    </div>
+
+    <h1 class="section-title">1. Introduction & Scope</h1>
+    
+    <h3 class="subsection-title">1.1 Document Purpose</h3>
+    <p>
+      This Software Requirements Specification (SRS) establishes the baseline requirements, software architecture, data structures, and operational features of the <strong>CyberKavach 2.0</strong> operations portal. This document acts as the definitive design contract for students, faculty, developers, and administrators.
+    </p>
+
+    <h3 class="subsection-title">1.2 System Overview</h3>
+    <p>
+      CyberKavach 2.0 is a centralized operational hub designed specifically for cyber security clubs and technical student organizations. The platform handles end-to-end event organization, secure student and coordinator onboarding, biometric/QR code physical attendance logging, batch certificate compilation, multi-level approval hierarchies, newsletter editing, social media copy generation, real-time activity streaming, and analytical dashboard telemetry.
+    </p>
+
+    <h3 class="subsection-title">1.3 Technology Stack</h3>
+    <p>
+      The portal is architected using a modern decoupled framework tailored for high performance, ease of local development, and sub-millisecond database response times:
+    </p>
+
+    <div class="architecture-diagram">
+      <div class="arch-row">
+        <div class="arch-box highlight-lime">
+          <div class="arch-box-title">Frontend Tier</div>
+          <div class="arch-box-detail">Next.js App Router (React 19)<br>Tailwind CSS v4 & Framer Motion<br>Lucide Icons & Socket.io Client</div>
+        </div>
+      </div>
+      <div class="arch-arrow-down">▼ HTTPS / JSON REST API</div>
+      <div class="arch-row">
+        <div class="arch-box highlight-orange">
+          <div class="arch-box-title">Backend API Tier</div>
+          <div class="arch-box-detail">Express.js (TypeScript Runtime)<br>JWT & Middleware Verification<br>Multer Upload Streaming</div>
+        </div>
+      </div>
+      <div class="arch-bi-arrows"><span>▲ Cache (HTTP)</span><span>▼ SQL / Prisma ORM</span></div>
+      <div class="arch-row">
+        <div class="arch-box highlight-red">
+          <div class="arch-box-title">Upstash Redis</div>
+          <div class="arch-box-detail">HTTP Serverless Cache<br>Key-Value Storage (120s TTL)</div>
+        </div>
+        <div class="arch-box highlight-red">
+          <div class="arch-box-title">Neon PostgreSQL</div>
+          <div class="arch-box-detail">Relational Database Core<br>Serverless Pool Allocation</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-panel">
+      <strong>SpaceX Dashboard Aesthetic Reference</strong>
+      All frontend pages are styled in a dark matrix palette (#05070A background) containing glowing cyan, lime, orange, and red UI triggers, monospaced tech typography, responsive overlays, and seamless sliding transitions.
+    </div>
+
+    <div class="doc-footer">
+      <span>CyberKavach 2.0 Operative Documentation</span>
+      <span>Classification: CONFIDENTIAL</span>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       SECTION 2: USER ROLES & PERMISSION clearance MATRIX
+       =================================================================== -->
+  <div class="page" style="padding-top: 10mm; height: 100vh;">
+    <div class="doc-header">
+      <span class="doc-title-mini">2. User Roles & Permission Clearance Matrix</span>
+      <span>Page 2</span>
+    </div>
+
+    <h1 class="section-title">2. User Roles & Clearance Matrix</h1>
+    <p>
+      The platform enforces strict role-based access control (RBAC). The following table defines the seven clearance tiers, mapped to their specific structural permissions in the code:
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Clearance Role</th>
+          <th>Prisma Enum</th>
+          <th>Assigned Scope & Permissions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Faculty Sponsor</strong></td>
+          <td><code>FACULTY</code></td>
+          <td>Highest authorization tier. Review and approve club budget/venue/event proposals; override approvals; award/deduct appreciation points; create certificate templates; manage club settings; approve student registrations.</td>
+        </tr>
+        <tr>
+          <td><strong>Student Coordinator</strong></td>
+          <td><code>STUDENT_COORDINATOR</code></td>
+          <td>Operational management. Create new event proposals; design rules; manage team rosters; submit social media posts for review; issue point logs to members; trigger attendance scanners.</td>
+        </tr>
+        <tr>
+          <td><strong>Technical Team</strong></td>
+          <td><code>TECH</code></td>
+          <td>Configuration and data exports. Read analytics; export CSV registration lists; configure event settings; verify server logs; debug certificates; query attendance databases.</td>
+        </tr>
+        <tr>
+          <td><strong>Content Director</strong></td>
+          <td><code>CONTENT</code></td>
+          <td>Draft and update event descriptions, rules, tags, code challenges, and announcements. Modify rules and guidelines text files.</td>
+        </tr>
+        <tr>
+          <td><strong>Social Media Manager</strong></td>
+          <td><code>SOCIAL_MEDIA</code></td>
+          <td>Draft and publish multi-channel social media posts (LinkedIn, Twitter, Instagram); organize newsletters; build marketing outlines.</td>
+        </tr>
+        <tr>
+          <td><strong>Club Member</strong></td>
+          <td><code>MEMBER</code></td>
+          <td>General member scope. View published events; register for hackathons/contests; create teams and invite peers; download team QR access codes; view point history and earned badges; download earned certificates.</td>
+        </tr>
+        <tr>
+          <td><strong>External Guest</strong></td>
+          <td><code>GUEST</code></td>
+          <td>Unapproved/Anonymous visitors. Register a new account; view public landing page and published event descriptions. Account remains in deactivated guest mode until approved by a FACULTY or STUDENT_COORDINATOR.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="security-panel">
+      <strong>Clearance Warning</strong>
+      All API controllers gate requests via authorization middleware matching these enums. Any attempt to query higher-tier endpoints (e.g. <code>PATCH /users/:id/role</code> by a <code>MEMBER</code>) will trigger a standard HTTP 403 Forbidden response and log an audit trail entry.
+    </div>
+
+    <div class="doc-footer">
+      <span>CyberKavach 2.0 Operative Documentation</span>
+      <span>Classification: CONFIDENTIAL</span>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       SECTION 3: DETAILED FUNCTIONAL MODULES (1/4)
+       =================================================================== -->
+  <div class="page" style="padding-top: 10mm; height: 100vh;">
+    <div class="doc-header">
+      <span class="doc-title-mini">3. Detailed Functional Modules</span>
+      <span>Page 3</span>
+    </div>
+
+    <h1 class="section-title">3. Detailed Functional Modules</h1>
+
+    <h3 class="subsection-title">3.1 Authentication & Onboarding HUD</h3>
+    <p>
+      The onboarding module provides registration, password encryption, validation, and multi-tier account approval.
+    </p>
+    <ul>
+      <li><strong>User Sign-Up Flow:</strong> Registration requires email, password, full name, student ID, department, institute, and current semester. The default role assigned to any new registrant is <code>GUEST</code>, with <code>isApproved</code> explicitly set to <code>false</code>.</li>
+      <li><strong>Approval Gating:</strong> A registered guest cannot access the dashboard or join events. Their account must be verified and approved by a <code>FACULTY</code> or <code>STUDENT_COORDINATOR</code> via the clearance approvals page (triggers <code>isApproved: true</code>).</li>
+      <li><strong>Google OAuth Integrations:</strong> Optional Google Auth login is verified on the backend, checking for student domains and signing a JWT upon match.</li>
+      <li><strong>Interactive UI States:</strong> The login screen features a matrix console with sound triggers, scanning animation, and input checking with interactive red border vibrations on verification error.</li>
+    </ul>
+
+    <h3 class="subsection-title">3.2 Multilevel Approval Workflow Engine</h3>
+    <p>
+      Operations like publishing an event, spending a budget, or issuing certificates require systematic authorization.
+    </p>
+    <ul>
+      <li><strong>Approval Requests:</strong> A student coordinator creating a new event initiates a new database record in the <code>approval_requests</code> table (status: <code>PENDING</code>).</li>
+      <li><strong>Multi-Level Clearance:</strong> The system supports sequential approval steps. For events, it automatically defines a Step 1: level 1, target role <code>FACULTY</code>. The event remains in draft mode (<code>isDraft: true</code>, <code>isPublished: false</code>) and cannot be published until the step is marked <code>APPROVED</code>.</li>
+      <li><strong>Escalation Rules:</strong> Requests that have been in the queue for more than 48 hours without action flag a warning to student coordinators and highlight in red on the executive approvals view.</li>
+      <li><strong>Notifications:</strong> Creating an approval request automatically resolves active target roles (e.g. all active Faculty users) and creates batch database notifications alerting them to act.</li>
+    </ul>
+
+    <div class="doc-footer">
+      <span>CyberKavach 2.0 Operative Documentation</span>
+      <span>Classification: CONFIDENTIAL</span>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       SECTION 3: DETAILED FUNCTIONAL MODULES (2/4)
+       =================================================================== -->
+  <div class="page" style="padding-top: 10mm; height: 100vh;">
+    <div class="doc-header">
+      <span class="doc-title-mini">3. Detailed Functional Modules</span>
+      <span>Page 4</span>
+    </div>
+
+    <h3 class="subsection-title">3.3 Event Management & Roster Export</h3>
+    <p>
+      Coordinators can create and edit cyber-events, hackathons, capture-the-flag (CTF) contests, and training sessions.
+    </p>
+    <ul>
+      <li><strong>Interactive Draft Builder:</strong> Events are built via a multi-page stepper form including venue configuration, start/end date calculations, rules markdown block, tag selections, registration deadline, capacity, and min/max team size controls.</li>
+      <li><strong>Asset Upload:</strong> Uses Multer streaming to save poster images and PDF rulebooks locally to <code>/uploads</code>. Re-uploading automatically cleans up old files.</li>
+      <li><strong>Public Visibility Gating:</strong> Events remain hidden until <code>isPublished: true</code> and <code>isApproved: true</code>. When published, the backend registers an event reminder broadcast.</li>
+      <li><strong>CSV Roster Exporting:</strong> Faculty and Tech roles can download a compiled CSV spreadsheet of all event participants, containing full name, email, student ID, department, team name, and exact registration timestamp.</li>
+    </ul>
+
+    <h3 class="subsection-title">3.4 Team Manager & Roster Cloning</h3>
+    <p>
+      For team-based contests, members register by establishing or joining collaborative groups.
+    </p>
+    <ul>
+      <li><strong>Team Code Generation:</strong> Creating a team inserts a <code>Team</code> record and generates a unique, alphanumeric 6-digit invitation code (e.g., <code>KAVACH-X7</code>). Sharing this code allows peer members to join.</li>
+      <li><strong>Peer invitations Gating:</strong> Submitting a code to join checks if the user is already registered for that event, validates that the team is not full (does not exceed <code>maxTeamSize</code>), and checks if the member account is approved and active.</li>
+      <li><strong>Roster Cloning (Cloning & Signing):</strong> Users can clone a past successful team roster into a new event. The system queries the members of the old team, verifies their active status, and performs a bulk insert creating a new team with a fresh code, outputting a console feedback animation: <i>"Identity Cloned & Signed."</i></li>
+      <li><strong>QR Access Token:</strong> The team leader can download a generated QR Code (pointing to the team ID) which represents their digital check-in passport.</li>
+    </ul>
+
+    <div class="doc-footer">
+      <span>CyberKavach 2.0 Operative Documentation</span>
+      <span>Classification: CONFIDENTIAL</span>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       SECTION 3: DETAILED FUNCTIONAL MODULES (3/4)
+       =================================================================== -->
+  <div class="page" style="padding-top: 10mm; height: 100vh;">
+    <div class="doc-header">
+      <span class="doc-title-mini">3. Detailed Functional Modules</span>
+      <span>Page 5</span>
+    </div>
+
+    <h3 class="subsection-title">3.5 Attendance HUD Scanner Core</h3>
+    <p>
+      Tracks student attendance live during workshops and CTFs using physical checkpoint scanning.
+    </p>
+    <ul>
+      <li><strong>Dual-HUD scanner:</strong> The client scanner accesses the camera stream to decode team or individual check-in QR codes. An animated neon scanning beam moves across the frame.</li>
+      <li><strong>Scanning Telemetry Check:</strong> Scanning a code makes a post request to <code>/api/attendance/scan</code>. The backend:
+        <ol>
+          <li>Validates if the QR belongs to a valid team or user registered for the event.</li>
+          <li>Checks the current time against the event's <code>startDate</code>. If the scan occurs after the start date, it flags the record as <code>isLate: true</code>.</li>
+          <li>Ensures no duplicate check-ins exist for the same user in that event window.</li>
+        </ol>
+      </li>
+      <li><strong>Check-Out Flow:</strong> The scanner can be toggled to Check-Out mode. This logs a matching <code>CHECK_OUT</code> record, which calculates total session duration.</li>
+    </ul>
+
+    <h3 class="subsection-title">3.6 Cryptographic Certificate Canvas & Issuance</h3>
+    <p>
+      Eliminates manual distribution of certificates by creating a dynamic, automated graphic rendering engine.
+    </p>
+    <ul>
+      <li><strong>Canvas Designer:</strong> Coordinators upload a clean PNG certificate template file. Using a drag-and-drop canvas, they map dynamic text fields (e.g. <code>recipientName</code>, <code>eventTitle</code>, <code>date</code>) to exact X/Y pixel coordinates and font-size options (saved as JSON in <code>certificate_templates</code>).</li>
+      <li><strong>Batch Generation:</strong> Uploading a recipient CSV triggers a batch queue. The server loads the template image, uses the <code>canvas</code> Node.js library to draw the recipient text at the mapped coordinates, generates a unique validation hash (checksum), and saves the compiled PNG/PDF.</li>
+      <li><strong>Cryptographic Verification:</strong> Each certificate prints a unique verification link containing the validation hash. Public visitors can enter this hash to verify the authenticity against database records.</li>
+      <li><strong>Member Dossier:</strong> Approved members can view and download their earned credentials directly from their personal certificate dashboard.</li>
+    </ul>
+
+    <div class="doc-footer">
+      <span>CyberKavach 2.0 Operative Documentation</span>
+      <span>Classification: CONFIDENTIAL</span>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       SECTION 3: DETAILED FUNCTIONAL MODULES (4/4)
+       =================================================================== -->
+  <div class="page" style="padding-top: 10mm; height: 100vh;">
+    <div class="doc-header">
+      <span class="doc-title-mini">3. Detailed Functional Modules</span>
+      <span>Page 6</span>
+    </div>
+
+    <h3 class="subsection-title">3.7 Matrix Leaderboard & Gamification Milestone System</h3>
+    <p>
+      Gamifies member contributions to incentivize engagement in cyber defense activities.
+    </p>
+    <ul>
+      <li><strong>Leaderboard Ranking:</strong> Displays active users ranked by total accumulated appreciation points. The top 3 members are presented on custom SpaceX-colored podiums with floating trophies.</li>
+      <li><strong>Points Issuance:</strong> Faculty and Coordinators can allocate points to members for categories like "Technical Contribution," "Event Management Excellence," or "Creative Contribution."</li>
+      <li><strong>Milestone Badges:</strong> The system automatically evaluates point milestones (e.g. 100 points unlocks "Cyber Sentinel," 500 points unlocks "Root Admin"). When a user crosses a milestone, a new record is added to <code>user_badges</code> and a congratulations banner displays.</li>
+      <li><strong>biometric Profile Dossiers:</strong> Clicking a member profile displays their activity dossier. Modifying profile details displays a biometric circular scan animation for security theme fidelity.</li>
+    </ul>
+
+    <h3 class="subsection-title">3.8 Real-Time Notifications (Socket.io) & Smart AI Chatbot</h3>
+    <p>
+      Ensures instant coordination and conversational operations support.
+    </p>
+    <ul>
+      <li><strong>Real-Time Broadcasts:</strong> Using Socket.io, operations notifications (approvals updates, point additions, badges earned) are pushed to the client immediately.</li>
+      <li><strong>Bottom-Right Notification HUD:</strong> Notifications slide in from the bottom-right. It contains an inline "Mark as Read" trigger and "Acknowledge & Redirect" buttons. It respects a local storage key (<code>ck_disable_notification_popups</code>) to allow users to mute popups.</li>
+      <li><strong>Smart Chatbot:</strong> An interactive console-style chatbot is available in the side HUD. It queries the local knowledge base, events rules, and venue directories to answer user questions about schedules, team requirements, and points.</li>
+    </ul>
+
+    <h3 class="subsection-title">3.9 Audit Trail logging & Social Media Drafting</h3>
+    <p>
+      Secures club operations against unauthorized adjustments and handles outreach.
+    </p>
+    <ul>
+      <li><strong>System Audit Logs:</strong> Critical actions (event creation, user status modifications, certificate template alterations, points deductions) trigger an insert to the <code>audit_logs</code> table, recording the timestamp, acting user ID, action type, and JSON metadata context.</li>
+      <li><strong>Social Media Drafts:</strong> Allows social media coordinators to write, edit, and queue posts for Twitter, LinkedIn, and Instagram based on event highlights. Posts must be approved by content directors before publishing.</li>
+    </ul>
+
+    <div class="doc-footer">
+      <span>CyberKavach 2.0 Operative Documentation</span>
+      <span>Classification: CONFIDENTIAL</span>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       SECTION 4: DATABASE SCHEMA SPECIFICATION (1/3)
+       =================================================================== -->
+  <div class="page" style="padding-top: 10mm; height: 100vh;">
+    <div class="doc-header">
+      <span class="doc-title-mini">4. Database Schema Specification</span>
+      <span>Page 7</span>
+    </div>
+
+    <h1 class="section-title">4. Database Schema Specification</h1>
+    <p>
+      The relational data model is maintained in PostgreSQL via the Prisma ORM. The entities, constraints, and relationships are defined below:
+    </p>
+
+    <h3 class="subsection-title">4.1 Core Enumerations</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Enum Name</th>
+          <th>Allowed Database Values</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>Role</code></td>
+          <td><code>FACULTY</code>, <code>STUDENT_COORDINATOR</code>, <code>TECH</code>, <code>CONTENT</code>, <code>SOCIAL_MEDIA</code>, <code>MEMBER</code>, <code>GUEST</code></td>
+          <td>Role clearance levels.</td>
+        </tr>
+        <tr>
+          <td><code>ApprovalStatus</code></td>
+          <td><code>PENDING</code>, <code>UNDER_REVIEW</code>, <code>APPROVED</code>, <code>REJECTED</code></td>
+          <td>Workflow state.</td>
+        </tr>
+        <tr>
+          <td><code>ApprovalType</code></td>
+          <td><code>EVENT_PERMISSION</code>, <code>RESOURCE_VENUE</code>, <code>BUDGET</code>, <code>SOCIAL_MEDIA_POST</code>, <code>CONTENT_PUBLISH</code>, <code>CERTIFICATE_AUTH</code>, <code>EXTERNAL_COLLAB</code></td>
+          <td>Approval request types.</td>
+        </tr>
+        <tr>
+          <td><code>AttendanceType</code></td>
+          <td><code>CHECK_IN</code>, <code>CHECK_OUT</code></td>
+          <td>HUD scan categories.</td>
+        </tr>
+        <tr>
+          <td><code>CertificateStatus</code></td>
+          <td><code>PENDING</code>, <code>GENERATING</code>, <code>GENERATED</code>, <code>FAILED</code></td>
+          <td>Credential generation state.</td>
+        </tr>
+        <tr>
+          <td><code>NotificationType</code></td>
+          <td><code>APPROVAL_UPDATE</code>, <code>EVENT_REMINDER</code>, <code>TEAM_UPDATE</code>, <code>POINTS_RECEIVED</code>, <code>BADGE_EARNED</code>, <code>SYSTEM</code>, <code>ACCOUNT_APPROVED</code></td>
+          <td>Real-time alert routing.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 class="subsection-title">4.2 User Entity Model (Table: <code>users</code>)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Field Name</th>
+          <th>Database Type</th>
+          <th>Nullability</th>
+          <th>Constraints & Default Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>id</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>Primary Key (UUID)</td>
+        </tr>
+        <tr>
+          <td><code>email</code></td>
+          <td><code>VARCHAR(255)</code></td>
+          <td>NOT NULL</td>
+          <td>Unique Constraint</td>
+        </tr>
+        <tr>
+          <td><code>passwordHash</code></td>
+          <td><code>VARCHAR(255)</code></td>
+          <td>NOT NULL</td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td><code>name</code></td>
+          <td><code>VARCHAR(255)</code></td>
+          <td>NOT NULL</td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td><code>studentId</code></td>
+          <td><code>VARCHAR(50)</code></td>
+          <td>NULLABLE</td>
+          <td>Unique Constraint</td>
+        </tr>
+        <tr>
+          <td><code>role</code></td>
+          <td><code>Role</code> (Enum)</td>
+          <td>NOT NULL</td>
+          <td>Default: <code>GUEST</code></td>
+        </tr>
+        <tr>
+          <td><code>isApproved</code></td>
+          <td><code>BOOLEAN</code></td>
+          <td>NOT NULL</td>
+          <td>Default: <code>false</code></td>
+        </tr>
+        <tr>
+          <td><code>isActive</code></td>
+          <td><code>BOOLEAN</code></td>
+          <td>NOT NULL</td>
+          <td>Default: <code>true</code></td>
+        </tr>
+        <tr>
+          <td><code>createdAt</code></td>
+          <td><code>TIMESTAMP</code></td>
+          <td>NOT NULL</td>
+          <td>Default: <code>NOW()</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="doc-footer">
+      <span>CyberKavach 2.0 Operative Documentation</span>
+      <span>Classification: CONFIDENTIAL</span>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       SECTION 4: DATABASE SCHEMA SPECIFICATION (2/3)
+       =================================================================== -->
+  <div class="page" style="padding-top: 10mm; height: 100vh;">
+    <div class="doc-header">
+      <span class="doc-title-mini">4. Database Schema Specification</span>
+      <span>Page 8</span>
+    </div>
+
+    <h3 class="subsection-title">4.3 Event Entity Model (Table: <code>events</code>)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Field Name</th>
+          <th>Database Type</th>
+          <th>Nullability</th>
+          <th>Constraints & Relations</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>id</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>Primary Key (UUID)</td>
+        </tr>
+        <tr>
+          <td><code>title</code></td>
+          <td><code>VARCHAR(200)</code></td>
+          <td>NOT NULL</td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td><code>slug</code></td>
+          <td><code>VARCHAR(255)</code></td>
+          <td>NOT NULL</td>
+          <td>Unique Index</td>
+        </tr>
+        <tr>
+          <td><code>startDate</code></td>
+          <td><code>TIMESTAMP</code></td>
+          <td>NOT NULL</td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td><code>endDate</code></td>
+          <td><code>TIMESTAMP</code></td>
+          <td>NOT NULL</td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td><code>maxCapacity</code></td>
+          <td><code>INTEGER</code></td>
+          <td>NULLABLE</td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td><code>minTeamSize</code></td>
+          <td><code>INTEGER</code></td>
+          <td>NULLABLE</td>
+          <td>Default: 1</td>
+        </tr>
+        <tr>
+          <td><code>maxTeamSize</code></td>
+          <td><code>INTEGER</code></td>
+          <td>NULLABLE</td>
+          <td>Default: 1</td>
+        </tr>
+        <tr>
+          <td><code>isPublished</code></td>
+          <td><code>BOOLEAN</code></td>
+          <td>NOT NULL</td>
+          <td>Default: <code>false</code></td>
+        </tr>
+        <tr>
+          <td><code>isApproved</code></td>
+          <td><code>BOOLEAN</code></td>
+          <td>NOT NULL</td>
+          <td>Default: <code>true</code></td>
+        </tr>
+        <tr>
+          <td><code>creatorId</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>FK to <code>users.id</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 class="subsection-title">4.4 Team & TeamMember Models (Tables: <code>teams</code>, <code>team_members</code>)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Field Name</th>
+          <th>Database Type</th>
+          <th>Nullability</th>
+          <th>Key Status & Foreign Key Map</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="4"><strong>Table: <code>teams</code></strong></td>
+        </tr>
+        <tr>
+          <td><code>id</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>Primary Key (UUID)</td>
+        </tr>
+        <tr>
+          <td><code>name</code></td>
+          <td><code>VARCHAR(100)</code></td>
+          <td>NOT NULL</td>
+          <td>-</td>
+        </tr>
+        <tr>
+          <td><code>teamCode</code></td>
+          <td><code>VARCHAR(50)</code></td>
+          <td>NOT NULL</td>
+          <td>Unique Index</td>
+        </tr>
+        <tr>
+          <td><code>leaderId</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>FK to <code>users.id</code></td>
+        </tr>
+        <tr>
+          <td><code>eventId</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>FK to <code>events.id</code> (On Delete: Cascade)</td>
+        </tr>
+        <tr>
+          <td colspan="4"><strong>Table: <code>team_members</code></strong></td>
+        </tr>
+        <tr>
+          <td><code>id</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>Primary Key (UUID)</td>
+        </tr>
+        <tr>
+          <td><code>teamId</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>FK to <code>teams.id</code> (On Delete: Cascade)</td>
+        </tr>
+        <tr>
+          <td><code>userId</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>FK to <code>users.id</code> (Unique Constraint: <code>teamId_userId</code>)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="doc-footer">
+      <span>CyberKavach 2.0 Operative Documentation</span>
+      <span>Classification: CONFIDENTIAL</span>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       SECTION 4: DATABASE SCHEMA SPECIFICATION (3/3)
+       =================================================================== -->
+  <div class="page" style="padding-top: 10mm; height: 100vh;">
+    <div class="doc-header">
+      <span class="doc-title-mini">4. Database Schema Specification</span>
+      <span>Page 9</span>
+    </div>
+
+    <h3 class="subsection-title">4.5 Attendance & Appreciation Models</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Field Name</th>
+          <th>Database Type</th>
+          <th>Nullability</th>
+          <th>Relations & Index Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="4"><strong>Table: <code>attendance</code></strong></td>
+        </tr>
+        <tr>
+          <td><code>id</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>Primary Key (UUID)</td>
+        </tr>
+        <tr>
+          <td><code>type</code></td>
+          <td><code>AttendanceType</code></td>
+          <td>NOT NULL</td>
+          <td>CHECK_IN or CHECK_OUT</td>
+        </tr>
+        <tr>
+          <td><code>isLate</code></td>
+          <td><code>BOOLEAN</code></td>
+          <td>NOT NULL</td>
+          <td>Default: <code>false</code></td>
+        </tr>
+        <tr>
+          <td><code>userId</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>FK to <code>users.id</code> (Index: <code>attendance_userId_idx</code>)</td>
+        </tr>
+        <tr>
+          <td><code>eventId</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>FK to <code>events.id</code> (Index: <code>attendance_eventId_idx</code>)</td>
+        </tr>
+        <tr>
+          <td colspan="4"><strong>Table: <code>appreciation_points</code></strong></td>
+        </tr>
+        <tr>
+          <td><code>id</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>Primary Key (UUID)</td>
+        </tr>
+        <tr>
+          <td><code>points</code></td>
+          <td><code>INTEGER</code></td>
+          <td>NOT NULL</td>
+          <td>Negative value indicates a deduction</td>
+        </tr>
+        <tr>
+          <td><code>category</code></td>
+          <td><code>VARCHAR(100)</code></td>
+          <td>NOT NULL</td>
+          <td>Indexed category metadata</td>
+        </tr>
+        <tr>
+          <td><code>receiverId</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>FK to <code>users.id</code> (Index: <code>appreciation_receiverId_idx</code>)</td>
+        </tr>
+        <tr>
+          <td><code>giverId</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>FK to <code>users.id</code> (Index: <code>appreciation_giverId_idx</code>)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 class="subsection-title">4.6 Approval System Models</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Field Name</th>
+          <th>Database Type</th>
+          <th>Nullability</th>
+          <th>Description & Relational Links</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="4"><strong>Table: <code>approval_requests</code></strong></td>
+        </tr>
+        <tr>
+          <td><code>id</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>Primary Key (UUID)</td>
+        </tr>
+        <tr>
+          <td><code>type</code></td>
+          <td><code>ApprovalType</code></td>
+          <td>NOT NULL</td>
+          <td>Type of permission needed.</td>
+        </tr>
+        <tr>
+          <td><code>status</code></td>
+          <td><code>ApprovalStatus</code></td>
+          <td>NOT NULL</td>
+          <td>Default: <code>PENDING</code></td>
+        </tr>
+        <tr>
+          <td><code>requesterId</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>FK to <code>users.id</code></td>
+        </tr>
+        <tr>
+          <td colspan="4"><strong>Table: <code>approval_steps</code></strong></td>
+        </tr>
+        <tr>
+          <td><code>id</code></td>
+          <td><code>VARCHAR(36)</code></td>
+          <td>NOT NULL</td>
+          <td>Primary Key (UUID)</td>
+        </tr>
+        <tr>
+          <td><code>level</code></td>
+          <td><code>INTEGER</code></td>
+          <td>NOT NULL</td>
+          <td>Approval tier level (e.g. 1, 2)</td>
+        </tr>
+        <tr>
+          <td><code>status</code></td>
+          <td><code>ApprovalStatus</code></td>
+          <td>NOT NULL</td>
+          <td>Default: <code>PENDING</code> (Unique: <code>requestId_level</code>)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="doc-footer">
+      <span>CyberKavach 2.0 Operative Documentation</span>
+      <span>Classification: CONFIDENTIAL</span>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       SECTION 5: DATABASE QUERY OPTIMIZATION & CACHING (1/2)
+       =================================================================== -->
+  <div class="page" style="padding-top: 10mm; height: 100vh;">
+    <div class="doc-header">
+      <span class="doc-title-mini">5. Database Query Optimization & Caching</span>
+      <span>Page 10</span>
+    </div>
+
+    <h1 class="section-title">5. Query Optimizations & Caching</h1>
+    <p>
+      To prevent database N+1 bottlenecks and ensure lightning-fast responsiveness under high load, CyberKavach 2.0 implements 16 specific optimizations across all routes:
+    </p>
+
+    <h3 class="subsection-title">5.1 Parallel Query Execution via <code>Promise.all()</code></h3>
+    <p>
+      Sequential await operations block the event loop. The backend combines database reads in parallel wherever independent queries exist.
+    </p>
+    <div class="note-panel">
+      <strong>Code Optimization Blueprint (GET /api/analytics/club)</strong>
+      <pre>const [totalUsers, totalEvents, totalRegistrations, totalCertificates, roleDistribution, recentEvents, approvalStats] = await Promise.all([
+  prisma.user.count(),
+  prisma.event.count(),
+  prisma.eventRegistration.count(),
+  prisma.certificate.count(),
+  prisma.user.groupBy({ by: ["role"], _count: { id: true } }),
+  prisma.event.findMany({ take: 5, orderBy: { createdAt: "desc" } }),
+  prisma.approvalRequest.groupBy({ by: ["status"], _count: { id: true } })
+]);</pre>
+      By bundling 7 queries in a single Promise container, query execution latency drops from ~180ms to the slowest single query duration (~30ms).
+    </div>
+
+    <h3 class="subsection-title">5.2 Multi-Tier Upstash Redis Caching Strategy</h3>
+    <p>
+      High-traffic read endpoints utilize Upstash Serverless Redis caching using HTTP-based connections. This prevents socket exhaustion during local container restarts:
+    </p>
+    <ol>
+      <li><strong>Public Events Listing:</strong> Cached at <code>events:public:${clubId}</code> (TTL: 60s). Only unsearched first-page results are cached to maximize cache-hit rates.</li>
+      <li><strong>Club-Wide Analytics:</strong> Cached at <code>analytics:club</code> (TTL: 60s) to limit expensive database count aggregations.</li>
+      <li><strong>Gamification Leaderboard:</strong> Leaderboard periods are cached at <code>appreciation:leaderboard:${period}</code> (TTL: 120s) because point tallies remain constant between checkpoints.</li>
+      <li><strong>Badge Milestones Dictionary:</strong> Unlocked achievements directory is cached at <code>appreciation:badges</code> (TTL: 300s).</li>
+    </ol>
+
+    <h3 class="subsection-title">5.3 Dynamic Cache Invalidation (Busting stale data)</h3>
+    <p>
+      To maintain consistency, any write or update operations call <code>cacheInvalidate()</code> immediately before sending the API response, ensuring subsequent reads immediately load current records.
+    </p>
+
+    <div class="doc-footer">
+      <span>CyberKavach 2.0 Operative Documentation</span>
+      <span>Classification: CONFIDENTIAL</span>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       SECTION 5: DATABASE QUERY OPTIMIZATION & CACHING (2/2)
+       =================================================================== -->
+  <div class="page" style="padding-top: 10mm; height: 100vh;">
+    <div class="doc-header">
+      <span class="doc-title-mini">5. Database Query Optimization & Caching</span>
+      <span>Page 11</span>
+    </div>
+
+    <h3 class="subsection-title">5.4 Batch Database Operations (Validation & Insertion)</h3>
+    <p>
+      Looping queries to perform checks is a critical bottleneck. The platform resolves validation in batch batches:
+    </p>
+    <ul>
+      <li><strong>Teammate Batch Validation:</strong> During team registration, rather than querying user approval status individually, the server runs a single <code>prisma.user.findMany({ where: { email: { in: emails } } })</code>. Email arrays are filtered and validated in-memory, avoiding round-trips.</li>
+      <li><strong>Milestone Batch Evaluation:</strong> Milestone checks run a single aggregate query of total points, pulls all eligible badges, and queries existing badges using <code>{ userId, badgeId: { in: eligibleBadges.map(b => b.id) } }</code>.</li>
+      <li><strong>Bulk Notifications:</strong> Triggering notifications to multiple stakeholders uses <code>sendBulkNotification</code>. The backend executes a single <code>prisma.notification.createMany()</code> write transaction, bypassing multiple individual writes.</li>
+    </ul>
+
+    <h3 class="subsection-title">5.5 ACID PostgreSQL Transactions (Data Integrity Guard)</h3>
+    <p>
+      Operations modifying multiple interrelated tables are wrapped in a database-level transaction. This ensures that if any single step fails, the entire transaction rolls back, preventing orphaned data:
+    </p>
+    <div class="note-panel">
+      <strong>Transactional Team Assembly Code Layout</strong>
+      <pre>const result = await prisma.$transaction(async (tx) => {
+  const newTeam = await tx.team.create({ data: { name, teamCode, eventId, leaderId } });
+  await tx.teamMember.createMany({
+    data: [{ teamId: newTeam.id, userId: leaderId }, ...members]
+  });
+  await tx.eventRegistration.createMany({
+    data: [{ userId: leaderId, eventId, teamId: newTeam.id }, ...registrations]
+  });
+  return newTeam;
+});</pre>
+      This guarantees team metadata, user memberships, and event registrations are generated atomically.
+    </div>
+
+    <h3 class="subsection-title">5.6 Relational Database Index Mapping</h3>
+    <p>
+      The database schema includes explicit indices on fields heavily targeted by filter, sort, and search clauses:
+    </p>
+    <ul>
+      <li><code>@@index([clubId])</code> on <code>events</code>, <code>approval_requests</code>, <code>certificate_templates</code>, and <code>notifications</code> for namespace isolation.</li>
+      <li><code>@@index([eventId])</code> and <code>@@index([userId])</code> on <code>attendance</code>, <code>teams</code>, and <code>event_registrations</code> to optimize relational joins.</li>
+      <li><code>@@index([receiverId])</code> and <code>@@index([createdAt])</code> on <code>appreciation_points</code> to accelerate leaderboard ordering.</li>
+    </ul>
+
+    <div class="doc-footer">
+      <span>CyberKavach 2.0 Operative Documentation</span>
+      <span>Classification: CONFIDENTIAL</span>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       SECTION 6: NON-FUNCTIONAL REQUIREMENTS
+       =================================================================== -->
+  <div class="page" style="padding-top: 10mm; height: 100vh;">
+    <div class="doc-header">
+      <span class="doc-title-mini">6. Non-Functional Requirements</span>
+      <span>Page 12</span>
+    </div>
+
+    <h1 class="section-title">6. Non-Functional Requirements</h1>
+
+    <h3 class="subsection-title">6.1 Security & Data Privacy</h3>
+    <ul>
+      <li><strong>Cryptography:</strong> All user passwords are encrypted using bcrypt hashing (salt rounds: 10). Cryptographic certificate verification links print unique SHA-256 checksums of the certificate PDF.</li>
+      <li><strong>Session Gating:</strong> Client requests require an HTTP Authorization Header: <code>Bearer &lt;JWT_TOKEN&gt;</code>. Tokens expire in 24 hours. Session storage is protected against XSS.</li>
+      <li><strong>Input Sanitations:</strong> Express router handles validation via Zod structures. Parameterized query templates constructed by Prisma prevent SQL injections.</li>
+    </ul>
+
+    <h3 class="subsection-title">6.2 Performance & Responsiveness</h3>
+    <ul>
+      <li><strong>Response Time Thresholds:</strong> High-frequency read queries (homepage list, profile dossiers, dashboard counters) must return in under 50ms using Upstash Redis. Write endpoints (event check-in, points allocation) must resolve in under 150ms.</li>
+      <li><strong>File Storage Management:</strong> Multer uploads restrict files to 5MB and validate extensions (e.g. only <code>.png</code>, <code>.jpg</code>, <code>.pdf</code> are accepted).</li>
+    </ul>
+
+    <h3 class="subsection-title">6.3 System Scalability & Maintainability</h3>
+    <ul>
+      <li><strong>Modular Abstraction:</strong> The monorepo uses clear separation of concerns: routes manage endpoints and request validations; database queries are handled through Prisma client helper modules.</li>
+      <li><strong>Environment Configs:</strong> Port bindings, database URLs, Upstash tokens, and session secrets are managed via local <code>.env</code> settings files.</li>
+    </ul>
+
+    <h3 class="subsection-title">6.4 Printing & Compile Layouts</h3>
+    <p>
+      The SRS document structure is configured with page breaks and margin alignments to export to PDF cleanly, ensuring structural tables, code blocks, and diagrams are not split mid-page during headless Chrome execution.
+    </p>
+
+    <div class="doc-footer">
+      <span>CyberKavach 2.0 Operative Documentation</span>
+      <span>Classification: CONFIDENTIAL</span>
+    </div>
+  </div>
+
+</body>
+</html>

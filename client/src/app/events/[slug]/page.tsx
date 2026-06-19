@@ -1,11 +1,27 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import React, { useEffect, useState, useCallback, Suspense } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { api, SERVER_BASE_URL } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, MapPin, Clock, Users, Tag, Shield, AlertCircle, CheckCircle, UserPlus, Mail, Copy, ExternalLink, Eye, X, Search } from "lucide-react";
+import { Calendar, MapPin, Clock, Users, Tag, Shield, AlertCircle, CheckCircle, UserPlus, Mail, Copy, ExternalLink, Eye, X, Search, Phone, FileText, Download } from "lucide-react";
+
+const LinkedinIcon = ({ className = "w-4 h-4", style }: { className?: string; style?: React.CSSProperties }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ width: '1.2em', height: '1.2em', ...style }}>
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect width="4" height="12" x="2" y="9" />
+    <circle cx="4" cy="4" r="2" />
+  </svg>
+);
+
+const InstagramIcon = ({ className = "w-4 h-4", style }: { className?: string; style?: React.CSSProperties }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{ width: '1.2em', height: '1.2em', ...style }}>
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
 
 interface EventDetail {
   id: string; title: string; description?: string; venue?: string;
@@ -15,11 +31,98 @@ interface EventDetail {
   isPublished: boolean; eventType: string; googleFormUrl?: string;
   creator: { name: string; role: string };
   _count: { registrations: number; teams: number };
+  documentUrl?: string;
+  organizers?: string;
+  socialLinks?: string;
 }
 
-export default function PublicEventPage() {
+// Theme → gradient mapping for dynamic background
+const EVENT_THEME_GRADIENTS: Record<string, string> = {
+  hackathon: "from-[#0a0014] via-[#130030] to-[#020020]",
+  workshop: "from-[#001a0a] via-[#002e14] to-[#001208]",
+  competition: "from-[#1a0000] via-[#300005] to-[#110000]",
+  seminar: "from-[#00101a] via-[#001e30] to-[#000b14]",
+  meetup: "from-[#0d0014] via-[#1a0028] to-[#080010]",
+  general: "from-[#0a0a0a] via-[#111111] to-[#050505]",
+};
+
+const EVENT_THEME_ACCENT: Record<string, string> = {
+  hackathon: "#a855f7",
+  workshop: "#22c55e",
+  competition: "#ef4444",
+  seminar: "#3b82f6",
+  meetup: "#f59e0b",
+  general: "#CCFF00",
+};
+
+// Animated letter-by-letter title
+function AnimatedTitle({ text, accent }: { text: string; accent: string }) {
+  return (
+    <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 uppercase font-mono tracking-tighter">
+      {text.split("").map((char, i) => (
+        <motion.span
+          key={i}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 * i, duration: 0.3 }}
+          style={char !== " " && i % 6 === 0 ? { color: accent } : {}}
+        >
+          {char}
+        </motion.span>
+      ))}
+    </h1>
+  );
+}
+
+// Formatted description — detects bullet points and paragraph breaks
+function FormattedDescription({ text }: { text: string }) {
+  const paragraphs = text.split(/\n\n+/);
+  const highlights: string[] = [];
+  const regularParagraphs: string[] = [];
+
+  paragraphs.forEach(p => {
+    const trimmed = p.trim();
+    const isBulletBlock = trimmed.split("\n").every(line => /^[•\-*>]/.test(line.trim()));
+    if (isBulletBlock) {
+      highlights.push(...trimmed.split("\n").map(l => l.replace(/^[•\-*>]\s*/, "").trim()).filter(Boolean));
+    } else {
+      regularParagraphs.push(trimmed);
+    }
+  });
+
+  return (
+    <div className="space-y-5">
+      {regularParagraphs.map((p, i) => (
+        <p key={i} className="text-sm leading-relaxed text-slate-300">
+          {p.split("\n").map((line, li) => (
+            <React.Fragment key={li}>
+              {line}
+              {li < p.split("\n").length - 1 && <br />}
+            </React.Fragment>
+          ))}
+        </p>
+      ))}
+      {highlights.length > 0 && (
+        <div>
+          <p className="text-[10px] font-bold font-mono tracking-widest uppercase text-red-400 mb-3">✦ Key Highlights</p>
+          <ul className="space-y-2">
+            {highlights.map((h, i) => (
+              <li key={i} className="flex items-start gap-3 text-sm text-slate-300">
+                <span className="mt-1 w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+                <span>{h}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PublicEventPageContent() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, token } = useAuth();
   const slug = params.slug as string;
 
@@ -31,6 +134,9 @@ export default function PublicEventPage() {
   const [showFormModal, setShowFormModal] = useState(false);
   const [showJoinTeamModal, setShowJoinTeamModal] = useState(false);
   const [joinTeamCode, setJoinTeamCode] = useState("");
+  // Read ?invite= from URL for QR deep-link
+  const inviteFromUrl = searchParams?.get("invite") || "";
+  const isFullFromUrl = searchParams?.get("isFull") === "true";
   const [formData, setFormData] = useState({
     name: "",
     studentId: "",
@@ -44,6 +150,16 @@ export default function PublicEventPage() {
   });
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [showPosterLightbox, setShowPosterLightbox] = useState(false);
+
+  // Auto-fill invite code from QR deep-link
+  useEffect(() => {
+    if (inviteFromUrl) {
+      setJoinTeamCode(inviteFromUrl);
+      if (!isFullFromUrl) {
+        setShowJoinTeamModal(true);
+      }
+    }
+  }, [inviteFromUrl]);
 
   // Teammate search states
   const [memberSearch, setMemberSearch] = useState("");
@@ -126,7 +242,7 @@ export default function PublicEventPage() {
   }, [selectedMembers]);
 
   const handleRegisterClick = () => {
-    if (!token) { router.push(`/?redirect=/events/${slug}`); return; }
+    if (!token) { router.push(`/auth?redirect=/events/${slug}`); return; }
     setFormData({
       name: user?.name || "",
       studentId: user?.studentId || "",
@@ -146,7 +262,7 @@ export default function PublicEventPage() {
   };
 
   const handleGoogleFormRegisterClick = () => {
-    if (!token) { router.push(`/?redirect=/events/${slug}`); return; }
+    if (!token) { router.push(`/auth?redirect=/events/${slug}`); return; }
     handleGoogleFormRegister();
   };
 
@@ -263,8 +379,11 @@ export default function PublicEventPage() {
     );
   }
 
+  const themeGradient = event ? (EVENT_THEME_GRADIENTS[event.eventType] || EVENT_THEME_GRADIENTS.general) : "from-black to-black";
+  const themeAccent = event ? (EVENT_THEME_ACCENT[event.eventType] || EVENT_THEME_ACCENT.general) : "#CCFF00";
+
   return (
-    <div className="min-h-screen bg-black">
+    <div className={`min-h-screen bg-gradient-to-br ${themeGradient}`}>
       {/* Hero Section */}
       <div className="relative h-80 md:h-[450px] overflow-hidden">
         {/* Background Gradients */}
@@ -272,20 +391,20 @@ export default function PublicEventPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-red-950/20 to-black/80 z-10" />
         
         {/* Event Poster or Default Banner */}
-        <img 
-          src={event.posterUrl ? `${SERVER_BASE_URL}${event.posterUrl}` : "/images/cyber_banner.png"} 
+        <img
+          src={event.posterUrl ? `${SERVER_BASE_URL}${event.posterUrl}` : "/images/cyber_banner.png"}
           alt={event.title}
-          className="absolute inset-0 w-full h-full object-cover opacity-80 z-0" 
+          className="absolute inset-0 w-full h-full object-cover opacity-80 z-0"
         />
-        
+
         <div className="absolute inset-0 flex items-end z-20">
           <div className="w-full max-w-7xl mx-auto px-6 md:px-8 pb-10">
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
               <div className="flex items-center gap-2 mb-3">
-                <Shield className="w-5 h-5 text-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-                <span className="text-sm font-semibold text-red-400 font-mono tracking-wider uppercase">CyberKavach Club</span>
+                <Shield className="w-5 h-5 shadow-[0_0_8px_rgba(239,68,68,0.5)]" style={{ color: themeAccent }} />
+                <span className="text-sm font-semibold font-mono tracking-wider uppercase" style={{ color: themeAccent }}>CyberKavach Club</span>
               </div>
-              <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 uppercase font-mono tracking-tighter">{event.title}</h1>
+              <AnimatedTitle text={event.title} accent={themeAccent} />
               <div className="flex flex-wrap items-center gap-3">
                 {event.tags.length > 0 && (
                   <div className="flex flex-wrap gap-2">
@@ -358,8 +477,8 @@ export default function PublicEventPage() {
               </div>
               {event.description && (
                 <div className="mt-6 pt-6 border-t border-red-950/40">
-                  <h3 className="text-sm font-bold font-mono tracking-wider uppercase mb-3 text-red-400">About</h3>
-                  <p className="text-sm leading-relaxed text-slate-300 whitespace-pre-wrap">{event.description}</p>
+                  <h3 className="text-sm font-bold font-mono tracking-wider uppercase mb-4" style={{ color: themeAccent }}>About This Event</h3>
+                  <FormattedDescription text={event.description} />
                 </div>
               )}
             </motion.div>
@@ -397,6 +516,97 @@ export default function PublicEventPage() {
                 </div>
               </motion.div>
             )}
+
+            {/* Supportive Documents Card */}
+            {(() => {
+              const parseDocs = (docUrl?: string | null): string[] => {
+                if (!docUrl) return [];
+                if (docUrl.startsWith("[")) {
+                  try {
+                    return JSON.parse(docUrl);
+                  } catch {
+                    return [docUrl];
+                  }
+                }
+                return [docUrl];
+              };
+              const docs = parseDocs(event.documentUrl);
+              if (docs.length === 0) return null;
+              return (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+                  className="ck-card p-8">
+                  <h2 className="text-xl font-bold font-mono tracking-tighter uppercase mb-4 text-white border-b border-red-950 pb-2">Supportive Documents</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {docs.map((docUrl, idx) => (
+                      <a key={idx} href={`${SERVER_BASE_URL}${docUrl}`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center justify-between p-3 rounded-xl border border-zinc-800 bg-[#0D0F14]/30 hover:border-red-500/40 hover:bg-[#0D0F14]/50 transition-all font-mono">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <FileText className="w-5 h-5 text-red-500 shrink-0" />
+                          <span className="text-xs text-zinc-350 truncate">{docUrl.split("/").pop()}</span>
+                        </div>
+                        <span className="text-[10px] text-red-400 font-bold uppercase tracking-widest shrink-0 border border-red-900/30 px-2 py-0.5 rounded">DOWNLOAD</span>
+                      </a>
+                    ))}
+                  </div>
+                </motion.div>
+              );
+            })()}
+
+            {/* Organizing Team Section */}
+            {(() => {
+              let organizers: any[] = [];
+              if (event.organizers) {
+                try {
+                  organizers = JSON.parse(event.organizers);
+                } catch (e) {
+                  console.error(e);
+                }
+              }
+              if (organizers.length === 0) return null;
+              // Sort: Faculty Coordinator first, then Student Coordinator, then others
+              const roleOrder = (role: string) => {
+                const r = role.toLowerCase();
+                if (r.includes("faculty")) return 0;
+                if (r.includes("student") || r.includes("coordinator")) return 1;
+                return 2;
+              };
+              const sorted = [...organizers].sort((a, b) => roleOrder(a.role) - roleOrder(b.role));
+              return (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+                  className="ck-card p-8">
+                  <h2 className="text-xl font-bold font-mono tracking-tighter uppercase mb-6 text-white border-b border-red-950 pb-2">Organizing Team</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {sorted.map((org: any, idx: number) => (
+                      <div key={idx} className="p-4 rounded-xl border border-zinc-800 bg-[#0D0F14]/30 flex flex-col justify-between hover:border-red-500/30 transition-all group relative overflow-hidden">
+                        {/* Corner brackets */}
+                        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-red-500/20 group-hover:border-red-500 transition-colors" />
+                        <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-red-500/20 group-hover:border-red-500 transition-colors" />
+                        {/* Faculty/Student coordinator badge */}
+                        {(org.role.toLowerCase().includes("faculty") || org.role.toLowerCase().includes("coordinator")) && (
+                          <div className="absolute top-2 right-6 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold uppercase tracking-widest" style={{ backgroundColor: `${themeAccent}18`, color: themeAccent, border: `1px solid ${themeAccent}30` }}>PRIMARY</div>
+                        )}
+                        <div>
+                          <p className="text-xs font-mono text-red-500 uppercase tracking-widest font-bold mb-1">{org.role}</p>
+                          <h3 className="text-lg font-bold text-white group-hover:text-red-400 transition-colors">{org.name}</h3>
+                        </div>
+                        <div className="mt-4 pt-3 border-t border-zinc-900 space-y-1.5 text-xs text-slate-400 font-mono">
+                          {org.phone && (
+                            <a href={`tel:${org.phone}`} className="flex items-center gap-2 hover:text-white transition font-bold">
+                              <Phone className="w-3.5 h-3.5 shrink-0" style={{ color: themeAccent }} />
+                              <span style={{ color: themeAccent }}>{org.phone}</span>
+                            </a>
+                          )}
+                          <a href={`mailto:${org.email}`} className="flex items-center gap-2 hover:text-white transition">
+                            <Mail className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                            <span className="truncate">{org.email}</span>
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              );
+            })()}
           </div>
 
           {/* Sidebar — Registration Card */}
@@ -517,6 +727,46 @@ export default function PublicEventPage() {
                 <p className="text-xs text-red-400 font-mono mt-0.5 uppercase tracking-wider">{event.creator.role.replace(/_/g, " ")}</p>
               </div>
             </motion.div>
+
+            {/* CyberKavach Community Links Card — with event socialLinks */}
+            {(() => {
+              let socialLinks: Record<string, string> = {};
+              if (event.socialLinks) {
+                try { socialLinks = JSON.parse(event.socialLinks); } catch {}
+              }
+              const instagramUrl = socialLinks.instagram || "https://instagram.com/cyberkavach";
+              const linkedinUrl = socialLinks.linkedin || "https://linkedin.com/company/cyberkavach";
+              const whatsappUrl = socialLinks.whatsapp || "https://chat.whatsapp.com/cyberkavach";
+              return (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                  className="ck-card p-6 mt-4">
+                  <h3 className="text-sm font-bold font-mono tracking-tighter uppercase mb-4 text-white border-b border-red-950 pb-2">CyberKavach Network</h3>
+                  <div className="space-y-2.5">
+                    <a href={linkedinUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-2.5 rounded-lg border border-zinc-800 bg-[#0D0F14]/30 hover:border-blue-500/40 hover:bg-blue-950/10 transition-all font-mono text-xs text-slate-350 group">
+                      <LinkedinIcon className="w-4 h-4" style={{ color: themeAccent }} />
+                      <span className="group-hover:text-white transition">LinkedIn Channel</span>
+                    </a>
+                    <a href={instagramUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-2.5 rounded-lg border border-zinc-800 bg-[#0D0F14]/30 hover:border-pink-500/40 hover:bg-pink-950/10 transition-all font-mono text-xs text-slate-350 group">
+                      <InstagramIcon className="w-4 h-4" style={{ color: themeAccent }} />
+                      <span className="group-hover:text-white transition">Instagram Feed</span>
+                    </a>
+                    <a href={whatsappUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-2.5 rounded-lg border border-zinc-800 bg-[#0D0F14]/30 hover:border-green-500/40 hover:bg-green-950/10 transition-all font-mono text-xs text-slate-350 group">
+                      <span className="text-sm leading-none shrink-0" style={{ color: themeAccent }}>💬</span>
+                      <span className="group-hover:text-white transition">WhatsApp Community</span>
+                    </a>
+                    {isFullFromUrl && (
+                      <div className="flex items-center gap-2 p-2.5 rounded-lg border border-red-900/40 bg-red-950/10 font-mono text-xs text-red-400">
+                        <Users className="w-4 h-4 shrink-0" />
+                        <span>This team is currently full.</span>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -612,12 +862,15 @@ export default function PublicEventPage() {
                     </div>
                     <div>
                       <label className="ck-label font-mono uppercase tracking-wider text-[10px]">Contact Phone *</label>
-                      <input 
-                        className="ck-input" 
-                        placeholder="Phone number" 
-                        value={formData.phone} 
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
-                        required 
+                      <input
+                        className="ck-input"
+                        type="tel"
+                        inputMode="numeric"
+                        placeholder="Phone number (digits only)"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/[^0-9+\-\s]/g, "") })}
+                        maxLength={15}
+                        required
                       />
                     </div>
                   </div>
@@ -814,5 +1067,17 @@ export default function PublicEventPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function PublicEventPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        <div className="w-10 h-10 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+      </div>
+    }>
+      <PublicEventPageContent />
+    </Suspense>
   );
 }

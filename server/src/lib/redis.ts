@@ -39,7 +39,17 @@ export async function redisSet(key: string, value: string, ttl?: number): Promis
 export async function redisGet(key: string): Promise<string | null> {
   if (!redisAvailable || !redis) return null;
   try {
-    return await redis.get<string>(key);
+    const data = await redis.get(key);
+    if (data === null || data === undefined) return null;
+    if (data === "[object Object]") {
+      console.warn(`[Redis] Corrupted key detected for '${key}', invalidating cache.`);
+      await redis.del(key);
+      return null;
+    }
+    if (typeof data === "object") {
+      return JSON.stringify(data);
+    }
+    return String(data);
   } catch (err) {
     console.warn("[Redis] GET failed:", err);
     return null;
