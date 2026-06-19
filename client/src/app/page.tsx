@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { CyberKavachLogo } from "@/components/CyberKavachLogo";
@@ -8,7 +8,8 @@ import {
   Shield, 
   ChevronRight, 
   Calendar, 
-  Code, 
+  Code,
+  Network,
   ArrowRight, 
   Info, 
   Users, 
@@ -16,7 +17,18 @@ import {
   FileText 
 } from "lucide-react";
 import { api, SERVER_BASE_URL } from "@/lib/api";
-import { CosmicBackground } from "@/components/CosmicBackground";
+import PlexusBackground from "@/components/PlexusBackground";
+
+
+interface EventItem {
+  id: string;
+  title: string;
+  description?: string;
+  posterUrl?: string;
+  startDate: string;
+  slug: string;
+  documentUrl?: string;
+}
 
 const LinkedinIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} style={{ width: "1em", height: "1em" }}>
@@ -38,15 +50,172 @@ const WhatsappIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   </svg>
 );
 
+const TypingText = () => {
+  const words = ["Digital Age.", "Enterprise.", "Modern Cyber Era.", "Threat Landscape."];
+  const [index, setIndex] = useState(0);
+  const [subIndex, setSubIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [text, setText] = useState("");
+
+  useEffect(() => {
+    if (subIndex === words[index].length + 1 && !isDeleting) {
+      const timeout = setTimeout(() => setIsDeleting(true), 1500);
+      return () => clearTimeout(timeout);
+    }
+
+    if (subIndex === 0 && isDeleting) {
+      setIsDeleting(false);
+      setIndex((prev) => (prev + 1) % words.length);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setSubIndex((prev) => prev + (isDeleting ? -1 : 1));
+      setText(words[index].substring(0, subIndex + (isDeleting ? -1 : 1)));
+    }, isDeleting ? 40 : 90);
+
+    return () => clearTimeout(timeout);
+  }, [subIndex, isDeleting, index]);
+
+  return (
+    <span 
+      className="inline-block text-[#FF0000] border-r-3 border-[#FF0000] animate-cursor-blink pr-1.5"
+      style={{
+        textShadow: "0 0 15px rgba(255, 0, 0, 0.85), 0 0 35px rgba(255, 0, 0, 0.45)",
+      }}
+    >
+      {text}
+    </span>
+  );
+};
+
+function EventCard({ ev, i, SERVER_BASE_URL }: { ev: EventItem; i: number; SERVER_BASE_URL: string }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    cardRef.current.style.setProperty("--mouse-x", `${x}px`);
+    cardRef.current.style.setProperty("--mouse-y", `${y}px`);
+  };
+
+  return (
+    <motion.div 
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: i * 0.1 }}
+      className="group relative rounded-xl bg-[#0D0F14]/40 backdrop-blur-md border border-zinc-800/80 overflow-hidden hover:border-[#FF0000]/50 hover:shadow-[0_0_35px_rgba(255,0,0,0.15)] flex flex-col h-full transition-all duration-300"
+    >
+      {/* Spotlight Overlay Effect */}
+      <div 
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-0"
+        style={{
+          background: "radial-gradient(350px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(255, 0, 0, 0.08), transparent 80%)"
+        }}
+      />
+
+      {/* Networking Dots Overlay */}
+      <div 
+        className="absolute inset-0 opacity-[0.03] pointer-events-none z-0"
+        style={{
+          backgroundImage: "radial-gradient(#FF0000 1.5px, transparent 1.5px)",
+          backgroundSize: "20px 20px"
+        }}
+      />
+
+      {/* Cyber Corner Brackets */}
+      <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-[#FF0000]/30 group-hover:border-[#FF0000] transition-colors z-20" />
+      <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-[#FF0000]/30 group-hover:border-[#FF0000] transition-colors z-20" />
+      <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-[#FF0000]/30 group-hover:border-[#FF0000] transition-colors z-20" />
+      <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-[#FF0000]/30 group-hover:border-[#FF0000] transition-colors z-20" />
+      
+      {/* Cover image or fallback */}
+      <div className="h-44 bg-zinc-900 relative overflow-hidden border-b border-white/5 z-10">
+        {ev.posterUrl ? (
+          <img src={`${SERVER_BASE_URL}${ev.posterUrl}`} alt={ev.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-95" />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-zinc-950 group-hover:scale-105 transition-transform duration-500">
+            {/* Networking Grid Pattern for Fallback */}
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "linear-gradient(#FF0000 1px, transparent 1px), linear-gradient(90deg, #FF0000 1px, transparent 1px)", backgroundSize: "30px 30px" }} />
+            <Network className="w-10 h-10 text-zinc-700 group-hover:text-[#FF0000]/60 transition-colors relative z-10" />
+          </div>
+        )}
+        
+        {/* Glowing status tag */}
+        <div className="absolute top-4 right-4 px-2.5 py-0.5 rounded bg-black/75 border border-[#FF0000]/30 backdrop-blur-md text-[9px] font-mono font-bold tracking-widest text-[#FF0000]">
+          {"//REG_ACTIVE"}
+        </div>
+        
+        {/* Floating Date Badge */}
+        <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/75 border border-[#FF003C]/30 backdrop-blur-md rounded text-xs font-mono font-bold text-[#FF003C]">
+          {new Date(ev.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </div>
+      </div>
+      
+      {/* Card details */}
+      <div className="p-6 flex-1 flex flex-col justify-between z-10">
+        <div>
+          <div className="text-[10px] font-mono text-[#FF0000]/70 uppercase mb-2 tracking-wider flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#FF0000] animate-ping" />
+            Operation Telemetry
+          </div>
+          <h3 className="text-xl font-bold mb-2 line-clamp-1 group-hover:text-[#FF0000] transition-colors">{ev.title}</h3>
+          <p className="text-sm text-slate-400 mb-6 line-clamp-3 leading-relaxed">{ev.description || "No description provided."}</p>
+        </div>
+        
+        {/* Action Block */}
+        <div className="mt-auto pt-4 border-t border-white/5 flex flex-col gap-3">
+          {ev.documentUrl && (() => {
+            let docs: string[] = [];
+            if (ev.documentUrl.startsWith("[")) {
+              try { docs = JSON.parse(ev.documentUrl); } catch { docs = [ev.documentUrl]; }
+            } else { docs = [ev.documentUrl]; }
+            return docs.length > 0 ? (
+              <div className="flex flex-col gap-1.5 w-full bg-black/30 border border-zinc-800/40 p-2.5 rounded-lg">
+                <span className="text-[8px] font-mono uppercase text-zinc-550 tracking-wider">Uploaded templates/resources:</span>
+                {docs.map((doc, idx) => (
+                  <a
+                    key={idx}
+                    href={`${SERVER_BASE_URL}${doc}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-xs font-mono text-zinc-400 hover:text-[#FF0000] transition truncate"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <FileText className="w-3.5 h-3.5 text-[#FF003C] shrink-0" />
+                    <span className="truncate">{doc.split("/").pop()}</span>
+                  </a>
+                ))}
+              </div>
+            ) : null;
+          })()}
+
+          <div className="flex items-center justify-between mt-1 w-full">
+            <span className="text-[10px] font-mono text-zinc-500">{"// REGISTRATION_ACTIVE"}</span>
+            <Link href={`/events/${ev.slug}`} className="px-4 py-1.5 rounded bg-black/60 border border-zinc-800 hover:bg-[#FF0000] hover:border-[#FF0000] hover:text-black text-xs font-bold font-mono tracking-widest uppercase transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,0,0,0.3)] flex items-center gap-1.5 text-[#FF0000]">
+              Launch Clearance <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function LandingPage() {
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<EventItem[]>([]);
 
   useEffect(() => {
     // Fetch Latest Events (Top 3 active)
-    api<any>("/events?limit=3").then((res) => {
+    api<{ events: EventItem[] }>("/events?limit=3").then((res) => {
       if (res.events) {
         const publicEvents = res.events
-          .sort((a: any, b: any) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+          .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
           .slice(0, 3);
         setEvents(publicEvents);
       }
@@ -54,24 +223,23 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#05070A] text-white overflow-hidden selection:bg-[#CCFF00]/30 font-sans relative">
+    <div className="min-h-screen bg-black text-white overflow-hidden selection:bg-[#FF0000]/30 font-sans relative">
       
-      {/* 3D Cyber Background Grid */}
-      <div className="fixed inset-0 z-0 pointer-events-none perspective-1000 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black z-10" />
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#CCFF00]/5 blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#FF4D00]/5 blur-[120px]" />
-        <div className="absolute top-[30%] left-[25%] w-[45%] h-[40%] rounded-full bg-[#FF003C]/5 blur-[130px] z-5 pointer-events-none" />
+      {/* Background Plexus Canvas with Overlays */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-black">
+        <PlexusBackground />
         
-        {/* Animated perspective grid */}
-        <div className="absolute inset-0 top-[30%] rotate-x-60 scale-150 transform-style-3d">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(204,255,0,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(204,255,0,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:linear-gradient(to_bottom,transparent,black)] animate-[grid_20s_linear_infinite]" />
-        </div>
+        {/* Readability Overlay: Add a subtle, semi-transparent black gradient layer (rgba(0,0,0,0.3)) over the plexus background */}
+        <div className="absolute inset-0 bg-black/30 z-10" />
         
-        {/* High-Fidelity Starry Night / Milky Way Background */}
-        <CosmicBackground />
+        {/* Top and Bottom soft black gradients to blend the video edges with navbar and footer */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black z-10 opacity-70" />
+        
+        {/* Soft glowing red ambient lights to match the plexus nodes */}
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#FF0000]/5 blur-[120px] z-10" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#FF003C]/5 blur-[120px] z-10" />
 
-        {/* Particles / Noise */}
+        {/* Particles / Noise for texture */}
         <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay z-20" />
       </div>
 
@@ -115,55 +283,58 @@ export default function LandingPage() {
 
       <main className="relative z-10">
         {/* Hero Section */}
-        <section className="pt-12 sm:pt-20 pb-32 sm:pb-48 px-4 sm:px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
+        <section className="pt-12 sm:pt-20 pb-32 sm:pb-48 px-4 sm:px-6 max-w-7xl mx-auto flex flex-col items-center text-center relative z-20">
           <motion.div 
             initial={{ opacity: 0, y: 30 }} 
             animate={{ opacity: 1, y: 0 }} 
             transition={{ duration: 0.8 }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-[#CCFF00]/5 border border-[#CCFF00]/25 text-[#CCFF00] text-xs font-mono mb-8 uppercase tracking-wider max-w-full text-center"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-[#FF003C]/5 border border-[#FF003C]/25 text-[#FF003C] text-xs font-mono mb-8 uppercase tracking-wider max-w-full text-center"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#CCFF00] animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#FF003C] animate-pulse" />
             The Ultimate Digital Operations Hub
           </motion.div>
-
+ 
           <motion.h1 
             initial={{ opacity: 0, y: 30 }} 
             animate={{ opacity: 1, y: 0 }} 
             transition={{ duration: 0.8, delay: 0.1 }}
-            className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-6 bg-gradient-to-br from-white via-zinc-200 to-zinc-500 bg-clip-text text-transparent select-none"
-            style={{ lineHeight: 1.1 }}
+            className="text-[5rem] sm:text-[7rem] md:text-[9rem] lg:text-[11rem] xl:text-[14rem] 2xl:text-[16rem] font-black tracking-tighter mb-8 text-[#FFFFFF] select-none drop-shadow-[0_5px_15px_rgba(0,0,0,0.7)]"
+            style={{ lineHeight: 1.05 }}
           >
-            SECURE. <br className="hidden sm:block"/> INNOVATE. LEAD.
+            The Ultimate Armor <br className="hidden sm:block"/> for the <TypingText />
           </motion.h1>
-
+ 
           <motion.p 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-sm sm:text-lg md:text-xl text-slate-400 max-w-2xl mb-8 sm:mb-12 select-none px-2"
+            className="text-base sm:text-lg md:text-xl text-zinc-300 max-w-3xl mb-12 select-none px-4 leading-relaxed font-normal drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
           >
-            Join CyberKavach to manage events, orchestrate teams, and validate digital credentials. Experience next generation operations built for technical clubs.
+            Welcome to <span className="text-[#FF003C] font-semibold drop-shadow-[0_0_10px_rgba(255,0,60,0.3)]">Cyber Kavach</span>. Where threat intelligence meets seamless event management to shield your enterprise from the unknown.
           </motion.p>
-
+ 
           <motion.div 
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }} 
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="flex flex-col sm:flex-row gap-4"
+            className="flex flex-col sm:flex-row gap-6 justify-center items-center w-full max-w-md sm:max-w-none"
           >
-            <Link href="/auth" className="group relative px-8 py-4 bg-gradient-to-r from-[#FF4D00] to-[#CCFF00] rounded-lg font-bold font-mono uppercase text-base text-black overflow-hidden transition-all hover:shadow-[0_0_30px_rgba(204,255,0,0.35)] hover:scale-[1.02] border border-[#CCFF00]/30 flex items-center justify-center">
-              <span className="relative flex items-center gap-2">Join the Club <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /></span>
+            <Link href="/auth" className="group relative w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[#FF0000] to-[#FF003C] rounded-lg font-bold font-mono uppercase text-base text-black overflow-hidden transition-all hover:shadow-[0_0_30px_rgba(255,0,0,0.5)] hover:scale-[1.02] border border-[#FF003C]/30 flex items-center justify-center">
+              <span className="relative flex items-center gap-2">
+                Activate Your Shield 
+                <Shield className="w-5 h-5 group-hover:scale-110 transition-transform text-black" />
+              </span>
             </Link>
-            <a href="#events" className="px-8 py-4 bg-black/40 border border-zinc-800 rounded-lg font-bold font-mono uppercase text-base hover:bg-zinc-900/60 hover:border-[#CCFF00]/35 transition-all text-zinc-300 hover:text-white flex items-center justify-center">
-              Explore Events
+            <a href="#events" className="group w-full sm:w-auto px-8 py-4 bg-black/40 border border-[#FF0000]/40 rounded-lg font-bold font-mono uppercase text-base text-[#FF0000] hover:text-[#FF003C] hover:bg-zinc-900/40 hover:border-[#FF003C] transition-all hover:shadow-[0_0_20px_rgba(255,0,0,0.25)] hover:scale-[1.02] flex items-center justify-center gap-2">
+              Secure Your Event Now <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </a>
           </motion.div>
         </section>
-
+ 
         {/* Latest Events Section */}
         <section id="events" className="px-6 max-w-7xl mx-auto mb-32">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-black mb-4 uppercase font-mono tracking-tight">Upcoming <span style={{ color: "#CCFF00" }}>Events</span></h2>
+            <h2 className="text-4xl md:text-5xl font-black mb-4 uppercase font-mono tracking-tight">Upcoming <span style={{ color: "#FF003C" }}>Events</span></h2>
             <p className="text-slate-400 max-w-xl mx-auto font-sans">Discover the latest workshops, hackathons, and tech summits hosted by CyberKavach.</p>
           </div>
 
@@ -175,88 +346,7 @@ export default function LandingPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {events.map((ev, i) => (
-                <motion.div 
-                  key={ev.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
-                  className="group relative rounded-xl bg-[#0D0F14]/30 backdrop-blur-md border border-zinc-800 overflow-hidden hover:bg-[#0D0F14]/55 transition-all hover:-translate-y-1.5 hover:border-[#CCFF00]/40 hover:shadow-[0_0_25px_rgba(204,255,0,0.1)] flex flex-col h-full"
-                >
-                  {/* Cyber Corner Brackets */}
-                  <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-[#CCFF00]/30 group-hover:border-[#CCFF00] transition-colors z-20" />
-                  <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-[#CCFF00]/30 group-hover:border-[#CCFF00] transition-colors z-20" />
-                  <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-[#CCFF00]/30 group-hover:border-[#CCFF00] transition-colors z-20" />
-                  <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-[#CCFF00]/30 group-hover:border-[#CCFF00] transition-colors z-20" />
-                  
-                  {/* Cover image or fallback */}
-                  <div className="h-44 bg-zinc-900 relative overflow-hidden border-b border-white/5">
-                    {ev.posterUrl ? (
-                      <img src={`${SERVER_BASE_URL}${ev.posterUrl}`} alt={ev.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-95" />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-900 to-black group-hover:scale-105 transition-transform duration-500">
-                        <Code className="w-10 h-10 text-zinc-700 group-hover:text-[#CCFF00]/45 transition-colors" />
-                      </div>
-                    )}
-                    
-                    {/* Glowing status tag */}
-                    <div className="absolute top-4 right-4 px-2.5 py-0.5 rounded bg-black/75 border border-[#CCFF00]/30 backdrop-blur-md text-[9px] font-mono font-bold tracking-widest text-[#CCFF00]">
-                      //REG_ACTIVE
-                    </div>
-                    
-                    {/* Floating Date Badge */}
-                    <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/75 border border-[#FF4D00]/30 backdrop-blur-md rounded text-xs font-mono font-bold text-[#FF4D00]">
-                      {new Date(ev.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </div>
-                  </div>
-                  
-                  {/* Card details */}
-                  <div className="p-6 flex-1 flex flex-col justify-between">
-                    <div>
-                      <div className="text-[10px] font-mono text-[#CCFF00]/70 uppercase mb-2 tracking-wider flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#CCFF00] animate-ping" />
-                        Operation Telemetry
-                      </div>
-                      <h3 className="text-xl font-bold mb-2 line-clamp-1 group-hover:text-[#CCFF00] transition-colors">{ev.title}</h3>
-                      <p className="text-sm text-slate-400 mb-6 line-clamp-3 leading-relaxed">{ev.description || "No description provided."}</p>
-                    </div>
-                    
-                    {/* Action Block */}
-                    <div className="mt-auto pt-4 border-t border-white/5 flex flex-col gap-3">
-                      {ev.documentUrl && (() => {
-                        let docs: string[] = [];
-                        if (ev.documentUrl.startsWith("[")) {
-                          try { docs = JSON.parse(ev.documentUrl); } catch { docs = [ev.documentUrl]; }
-                        } else { docs = [ev.documentUrl]; }
-                        return docs.length > 0 ? (
-                          <div className="flex flex-col gap-1.5 w-full bg-black/30 border border-zinc-800/40 p-2.5 rounded-lg">
-                            <span className="text-[8px] font-mono uppercase text-zinc-550 tracking-wider">Uploaded templates/resources:</span>
-                            {docs.map((doc, idx) => (
-                              <a
-                                key={idx}
-                                href={`${SERVER_BASE_URL}${doc}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-xs font-mono text-zinc-400 hover:text-[#CCFF00] transition truncate"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <FileText className="w-3.5 h-3.5 text-[#FF4D00] shrink-0" />
-                                <span className="truncate">{doc.split("/").pop()}</span>
-                              </a>
-                            ))}
-                          </div>
-                        ) : null;
-                      })()}
-
-                      <div className="flex items-center justify-between mt-1 w-full">
-                        <span className="text-[10px] font-mono text-zinc-500">// REGISTRATION_ACTIVE</span>
-                        <Link href={`/events/${ev.slug}`} className="px-4 py-1.5 rounded bg-black/60 border border-zinc-800 hover:bg-[#CCFF00] hover:border-[#CCFF00] hover:text-black text-xs font-bold font-mono tracking-widest uppercase transition-all duration-300 hover:shadow-[0_0_15px_rgba(204,255,0,0.2)] flex items-center gap-1.5 text-[#CCFF00]">
-                          Launch Clearance <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
+                <EventCard key={ev.id} ev={ev} i={i} SERVER_BASE_URL={SERVER_BASE_URL} />
               ))}
             </div>
           )}

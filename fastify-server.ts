@@ -1,6 +1,6 @@
 // ==========================================================
-# CyberKavach 2.0 — Fastify High-Performance Server Prototype
-# ==========================================================
+// CyberKavach 2.0 — Fastify High-Performance Server Prototype
+// ==========================================================
 import Fastify, { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import fastifyCors from "@fastify/cors";
 import fastifyHelmet from "@fastify/helmet";
@@ -12,7 +12,7 @@ const fastify: FastifyInstance = Fastify({
   logger: {
     level: process.env.NODE_ENV === "production" ? "info" : "debug",
     formatters: {
-      level: (label) => ({ level: label }),
+      level: (label: string) => ({ level: label }),
     },
   },
   disableRequestLogging: true, // Speeds up requests logging overhead under high concurrency
@@ -56,7 +56,7 @@ fastify.addHook("preHandler", async (request: FastifyRequest, reply: FastifyRepl
 });
 
 // ─── Global Health Probe Endpoint ───────────────────────────
-fastify.get("/api/health", async (request, reply) => {
+fastify.get("/api/health", async (request: FastifyRequest, reply: FastifyReply) => {
   return {
     status: "healthy",
     uptime: process.uptime(),
@@ -115,7 +115,7 @@ fastify.get("/api/events", {
 });
 
 // ─── Error Handling Hook ────────────────────────────────────
-fastify.setErrorHandler((error, request, reply) => {
+fastify.setErrorHandler((error: any, request: FastifyRequest, reply: FastifyReply) => {
   fastify.log.error(error);
   if (error.validation) {
     reply.status(400).send({ error: "Validation failure", details: error.validation });
