@@ -7,8 +7,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   FileCheck, Upload, Plus, Search, Download, ShieldCheck, X, FileSpreadsheet,
-  Users, AlertCircle, CheckCircle, Archive, Trash2, Eye, Palette,
-  Terminal, Cpu, Layers, Activity, Calendar, ArrowRight, RefreshCw, FileText
+  AlertCircle, CheckCircle, Archive, Trash2, Eye, Palette,
+  Terminal, Cpu, Layers, Calendar, RefreshCw, FileText
 } from "lucide-react";
 
 interface Template { id: string; name: string; fileUrl: string; fileType: string; createdBy?: { name: string }; createdAt: string; }
@@ -19,9 +19,8 @@ export default function CertificatesPage() {
   const { token } = useAuth();
   const router = useRouter();
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<{ id: string; title: string }[]>([]);
   const [certs, setCerts] = useState<Certificate[]>([]);
-  const [loading, setLoading] = useState(true);
 
   // Search/Sort States for Certificates
   const [certSearchQuery, setCertSearchQuery] = useState("");
@@ -30,7 +29,6 @@ export default function CertificatesPage() {
   // Modal states
   const [showGenerate, setShowGenerate] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
-  const [showImport, setShowImport] = useState(false);
 
   // Form states
   const [selectedEvent, setSelectedEvent] = useState("");
@@ -40,7 +38,6 @@ export default function CertificatesPage() {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [templateName, setTemplateName] = useState("");
   const [templateFile, setTemplateFile] = useState<File | null>(null);
-  const [importFile, setImportFile] = useState<File | null>(null);
   const [importedRecipients, setImportedRecipients] = useState<ImportedRecipient[]>([]);
   const [importSummary, setImportSummary] = useState<{ total: number; valid: number; invalid: number } | null>(null);
   const [importing, setImporting] = useState(false);
@@ -81,11 +78,10 @@ export default function CertificatesPage() {
       try {
         const [t, e] = await Promise.all([
           api<{ templates: Template[] }>("/certificates/templates", { token }),
-          api<{ events: any[] }>("/events/all", { token }),
+          api<{ events: { id: string; title: string }[] }>("/events/all", { token }),
         ]);
         setTemplates(t.templates); setEvents(e.events);
       } catch (err) { console.error(err); }
-      finally { setLoading(false); }
     };
     load();
   }, [token]);
@@ -116,7 +112,7 @@ export default function CertificatesPage() {
 
   // CSV/Excel import
   const handleFileImport = async (file: File) => {
-    setImporting(true); setImportFile(file);
+    setImporting(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -142,7 +138,6 @@ export default function CertificatesPage() {
       setImportSummary(data.summary);
       // Auto-populate text area too
       setRecipientText(data.recipients.map((r) => `${r.name}${r.email ? `, ${r.email}` : ""}`).join("\n"));
-      setShowImport(false);
       showToast("Registrations imported successfully!", "success");
     } catch (err) { showToast(err instanceof Error ? err.message : "Import failed", "error"); }
     finally { setImporting(false); }
@@ -369,6 +364,7 @@ export default function CertificatesPage() {
 
                 <div className="h-24 flex items-center justify-center bg-black border-b overflow-hidden" style={{ borderColor: "#1A1E26" }}>
                   {t.fileType && t.fileType.toLowerCase() !== "pdf" ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
                     <img src={getFileUrl(t.fileUrl)} alt={t.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-400" />
                   ) : (
                     <div className="flex flex-col items-center gap-1">
@@ -432,7 +428,7 @@ export default function CertificatesPage() {
               </div>
               <div className="flex flex-col gap-1">
                 <label className="ck-label">Sort</label>
-                <select className="ck-input ck-select text-xs" value={certSortBy} onChange={e => setCertSortBy(e.target.value as any)}>
+                <select className="ck-input ck-select text-xs" value={certSortBy} onChange={e => setCertSortBy(e.target.value as "date" | "name")}>
                   <option value="date">NEWEST FIRST</option>
                   <option value="name">ALPHABETICAL</option>
                 </select>
