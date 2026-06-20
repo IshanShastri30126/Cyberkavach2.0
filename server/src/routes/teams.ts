@@ -95,15 +95,17 @@ router.post("/", authenticate, validate(createTeamSchema), auditLog("TEAM_CREATE
       },
     });
 
-    // Auto-register all members for the event
+    // Auto-register all members for the event (batched)
     const allMemberIds = [leaderId, ...(memberIds || [])];
-    for (const mId of allMemberIds) {
-      await prisma.eventRegistration.upsert({
-        where: { userId_eventId: { userId: mId, eventId } },
-        create: { userId: mId, eventId, teamId: team.id },
-        update: { teamId: team.id },
-      });
-    }
+    await prisma.$transaction(
+      allMemberIds.map((mId: string) =>
+        prisma.eventRegistration.upsert({
+          where: { userId_eventId: { userId: mId, eventId } },
+          create: { userId: mId, eventId, teamId: team.id },
+          update: { teamId: team.id },
+        })
+      )
+    );
 
     await sendNotification({
       userId: leaderId,
@@ -239,14 +241,16 @@ router.post("/:id/reuse", authenticate, auditLog("TEAM_REUSED"), async (req: Req
       },
     });
 
-    // Auto-register all members for the new event
-    for (const m of original.members) {
-      await prisma.eventRegistration.upsert({
-        where: { userId_eventId: { userId: m.userId, eventId } },
-        create: { userId: m.userId, eventId, teamId: newTeam.id },
-        update: { teamId: newTeam.id },
-      });
-    }
+    // Auto-register all members for the new event (batched)
+    await prisma.$transaction(
+      original.members.map((m) =>
+        prisma.eventRegistration.upsert({
+          where: { userId_eventId: { userId: m.userId, eventId } },
+          create: { userId: m.userId, eventId, teamId: newTeam.id },
+          update: { teamId: newTeam.id },
+        })
+      )
+    );
 
     res.status(201).json({ team: newTeam });
   } catch (err) { console.error("[Teams] Reuse error:", err); res.status(500).json({ error: "Internal server error" }); }

@@ -607,9 +607,9 @@ export async function sendRoleUpdatedEmail(
 // ─── Password Reset Email ─────────────────────────────────────
 
 export async function sendPasswordResetEmail(user: { email: string }, token: string) {
-  const resetUrl = \`\${config.clientUrl}/auth/reset-password?token=\${token}\`;
+  const resetUrl = `${config.clientUrl}/auth/reset-password?token=${token}`;
 
-  const content = \`
+  const content = `
     <h2 style="color: #ffffff; font-size: 22px; font-weight: 700; margin: 0 0 8px;">
       Password Reset Request 🔐
     </h2>
@@ -620,7 +620,7 @@ export async function sendPasswordResetEmail(user: { email: string }, token: str
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
       <tr>
         <td style="text-align: center; padding-top: 8px;">
-          <a href="\${resetUrl}" target="_blank" rel="noopener noreferrer"
+          <a href="${resetUrl}" target="_blank" rel="noopener noreferrer"
             style="display: inline-block; background: linear-gradient(135deg, #7f1d1d, #dc2626); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-size: 14px; font-weight: 700; letter-spacing: 3px; font-family: 'Courier New', monospace; border: 1px solid #ef4444; box-shadow: 0 0 20px rgba(220, 38, 38, 0.4);">
             RESET PASSWORD
           </a>
@@ -631,8 +631,9 @@ export async function sendPasswordResetEmail(user: { email: string }, token: str
     <p style="color: #64748b; font-size: 12px; line-height: 1.6; margin: 20px 0 0; text-align: center;">
       This link will expire in 1 hour.
     </p>
-  \`;
+  `;
 
   return sendMail(user.email, "Password Reset Instructions", baseTemplate(content));
 }
+
 

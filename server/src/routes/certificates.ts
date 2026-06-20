@@ -9,7 +9,7 @@ import prisma from "../lib/prisma";
 import { authenticate, requireMinRole } from "../middlewares/auth";
 import { validate } from "../middlewares/validate";
 import { auditLog } from "../middlewares/auditLog";
-import { upload } from "../middlewares/upload";
+import { upload, getUploadedFileUrl } from "../middlewares/upload";
 import { config } from "../config";
 
 const router = Router();
@@ -36,7 +36,7 @@ router.post("/templates", authenticate, requireMinRole("STUDENT_COORDINATOR"), u
     const template = await prisma.certificateTemplate.create({
       data: {
         name: name || req.file.originalname,
-        fileUrl: `/uploads/${req.file.filename}`,
+        fileUrl: getUploadedFileUrl(req.file),
         fileType: req.file.mimetype.includes("pdf") ? "pdf" : "png",
         fields: fields ? JSON.parse(fields) : null,
         createdById: req.user!.userId,
@@ -58,11 +58,11 @@ router.put("/templates/:id", authenticate, requireMinRole("STUDENT_COORDINATOR")
     };
 
     if (req.file) {
-      if (template.fileUrl) {
+      if (template.fileUrl && template.fileUrl.startsWith("/uploads/")) {
         const oldPath = path.resolve(template.fileUrl.startsWith("/") ? template.fileUrl.slice(1) : template.fileUrl);
         if (fs.existsSync(oldPath)) { fs.unlinkSync(oldPath); }
       }
-      updateData.fileUrl = `/uploads/${req.file.filename}`;
+      updateData.fileUrl = getUploadedFileUrl(req.file);
       updateData.fileType = req.file.mimetype.includes("pdf") ? "pdf" : "png";
     }
 
@@ -191,43 +191,33 @@ router.post("/bulk", authenticate, requireMinRole("TECH"), validate(bulkSchema),
     const event = await prisma.event.findUnique({ where: { id: eventId } });
     if (!event) { res.status(404).json({ error: "Event not found" }); return; }
 
-    // Generate certificate HTML files using template-based rendering
-    const template = templateId ? await prisma.certificateTemplate.findUnique({ where: { id: templateId } }) : null;
-
-    const certs = [];
-    for (let i = 0; i < recipients.length; i++) {
-      const r = recipients[i];
+    // Prepare all certificate data without writing to disk
+    const now = new Date();
+    const certData = recipients.map((r: any) => {
       const code = generateCertCode();
       const checksum = generateChecksum(`${code}:${r.name}:${eventId}`);
-
-      // Generate a styled HTML certificate and save as file
-      const certHTML = generateCertificateHTML({
-        recipientName: r.name,
-        eventTitle: event.title,
-        eventDate: event.startDate.toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" }),
+      return {
         uniqueCode: code,
-        template: template,
-      });
+        recipientName: r.name,
+        recipientEmail: r.email || null,
+        eventId,
+        templateId: templateId || null,
+        checksum,
+        status: "GENERATED" as const,
+        generatedAt: now,
+        fileUrl: null, // No disk file — generated on-the-fly at download time
+      };
+    });
 
-      const filename = `cert_${code.replace(/[^a-z0-9]/gi, "_")}.html`;
-      const filePath = path.join(certOutputDir, filename);
-      fs.writeFileSync(filePath, certHTML, "utf-8");
+    // Batch insert all certificates
+    await prisma.certificate.createMany({ data: certData });
 
-      const cert = await prisma.certificate.create({
-        data: {
-          uniqueCode: code,
-          recipientName: r.name,
-          recipientEmail: r.email,
-          eventId,
-          templateId: templateId || null,
-          checksum,
-          status: "GENERATED",
-          generatedAt: new Date(),
-          fileUrl: `/uploads/certificates/${filename}`,
-        },
-      });
-      certs.push(cert);
-    }
+    // Fetch back the created certificates for the response
+    const certs = await prisma.certificate.findMany({
+      where: { eventId, generatedAt: now },
+      orderBy: { createdAt: "desc" },
+      take: certData.length,
+    });
 
     res.status(201).json({ count: certs.length, certificates: certs });
   } catch (err) { console.error("[Certs] Bulk error:", err); res.status(500).json({ error: "Internal server error" }); }
@@ -267,26 +257,46 @@ router.get("/event/:eventId", authenticate, requireMinRole("TECH"), async (req: 
   } catch (err) { console.error("[Certs] List error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
 
-// ─── GET /api/certificates/:id/download — Download single certificate ──
+// ─── GET /api/certificates/:id/download — Download single certificate (on-the-fly) ──
 router.get("/:id/download", authenticate, async (req: Request, res: Response) => {
   try {
-    const cert = await prisma.certificate.findUnique({ where: { id: req.params.id } });
-    if (!cert || !cert.fileUrl) { res.status(404).json({ error: "Certificate file not found" }); return; }
-    const filePath = path.resolve(cert.fileUrl.startsWith("/") ? cert.fileUrl.slice(1) : cert.fileUrl);
-    if (!fs.existsSync(filePath)) { res.status(404).json({ error: "File not found on disk" }); return; }
-    res.download(filePath, `certificate_${cert.uniqueCode}.html`);
+    const cert = await prisma.certificate.findUnique({
+      where: { id: req.params.id },
+      include: {
+        event: { select: { title: true, startDate: true } },
+        template: true,
+      },
+    });
+    if (!cert) { res.status(404).json({ error: "Certificate not found" }); return; }
+
+    // Generate HTML on-the-fly
+    const certHTML = generateCertificateHTML({
+      recipientName: cert.recipientName,
+      eventTitle: cert.event.title,
+      eventDate: cert.event.startDate.toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" }),
+      uniqueCode: cert.uniqueCode,
+      template: cert.template,
+    });
+
+    res.setHeader("Content-Type", "text/html");
+    res.setHeader("Content-Disposition", `attachment; filename="certificate_${cert.uniqueCode}.html"`);
+    res.send(certHTML);
   } catch (err) { console.error("[Certs] Download error:", err); res.status(500).json({ error: "Internal server error" }); }
 });
 
-// ─── GET /api/certificates/download-zip/:eventId — ZIP all certs ──
+// ─── GET /api/certificates/download-zip/:eventId — ZIP all certs (on-the-fly) ──
 router.get("/download-zip/:eventId", authenticate, requireMinRole("TECH"), async (req: Request, res: Response) => {
   try {
     const certs = await prisma.certificate.findMany({
       where: { eventId: req.params.eventId, status: "GENERATED" },
+      include: {
+        event: { select: { title: true, startDate: true } },
+        template: true,
+      },
     });
     if (certs.length === 0) { res.status(404).json({ error: "No certificates found" }); return; }
 
-    const event = await prisma.event.findUnique({ where: { id: req.params.eventId }, select: { title: true } });
+    const event = certs[0].event;
     const zipName = `certificates_${(event?.title || "event").replace(/[^a-z0-9]/gi, "_")}.zip`;
 
     res.setHeader("Content-Type", "application/zip");
@@ -296,12 +306,14 @@ router.get("/download-zip/:eventId", authenticate, requireMinRole("TECH"), async
     archive.pipe(res);
 
     for (const cert of certs) {
-      if (cert.fileUrl) {
-        const filePath = path.resolve(cert.fileUrl.startsWith("/") ? cert.fileUrl.slice(1) : cert.fileUrl);
-        if (fs.existsSync(filePath)) {
-          archive.file(filePath, { name: `${cert.recipientName.replace(/[^a-z0-9 ]/gi, "")}_${cert.uniqueCode}.html` });
-        }
-      }
+      const certHTML = generateCertificateHTML({
+        recipientName: cert.recipientName,
+        eventTitle: cert.event.title,
+        eventDate: cert.event.startDate.toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" }),
+        uniqueCode: cert.uniqueCode,
+        template: cert.template,
+      });
+      archive.append(certHTML, { name: `${cert.recipientName.replace(/[^a-z0-9 ]/gi, "")}_${cert.uniqueCode}.html` });
     }
 
     await archive.finalize();

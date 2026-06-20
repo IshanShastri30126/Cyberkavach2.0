@@ -6,7 +6,7 @@ import { validate } from "../middlewares/validate";
 import { auditLog } from "../middlewares/auditLog";
 import { sendNotification } from "../lib/notificationService";
 import { sendApprovalDecisionEmail } from "../lib/emailService";
-import { upload } from "../middlewares/upload";
+import { upload, getUploadedFileUrl } from "../middlewares/upload";
 import { Role } from "@prisma/client";
 import redis, { redisGet, redisSet, redisDel } from "../lib/redis";
 
@@ -188,7 +188,7 @@ router.post("/:id/attachment", authenticate, upload.single("attachment"), async 
 
     const metadata: any = request.metadata || {};
     const attachments = metadata.attachments || [];
-    attachments.push({ name: req.file.originalname, url: `/uploads/${req.file.filename}` });
+    attachments.push({ name: req.file.originalname, url: getUploadedFileUrl(req.file) });
     metadata.attachments = attachments;
 
     const updated = await prisma.approvalRequest.update({

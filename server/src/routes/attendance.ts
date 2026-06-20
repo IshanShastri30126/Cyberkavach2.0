@@ -35,7 +35,7 @@ router.post("/", authenticate, validate(checkInSchema), auditLog("ATTENDANCE_REC
   try {
     const { eventId, type, userId: targetUserId, teamCode } = req.body;
 
-    // If teamCode provided, do bulk team check-in
+    // If teamCode provided, do bulk team check-in (batched)
     if (teamCode) {
       const team = await prisma.team.findUnique({
         where: { teamCode },
@@ -43,20 +43,44 @@ router.post("/", authenticate, validate(checkInSchema), auditLog("ATTENDANCE_REC
       });
       if (!team) { res.status(404).json({ error: "Team not found" }); return; }
 
-      const records = [];
-      for (const member of team.members) {
-        const reg = await prisma.eventRegistration.findUnique({
-          where: { userId_eventId: { userId: member.userId, eventId } },
+      const memberUserIds = team.members.map((m) => m.userId);
+
+      // Batch: fetch all registrations for these members in one query
+      const registrations = await prisma.eventRegistration.findMany({
+        where: { eventId, userId: { in: memberUserIds } },
+        select: { userId: true },
+      });
+      const registeredIds = new Set(registrations.map((r) => r.userId));
+
+      // Filter to only registered members
+      let eligibleIds = memberUserIds.filter((id) => registeredIds.has(id));
+
+      // For CHECK_IN: batch-fetch latest attendance to skip already checked-in users
+      if (type === "CHECK_IN" && eligibleIds.length > 0) {
+        const latestRecords = await prisma.attendance.findMany({
+          where: { eventId, userId: { in: eligibleIds } },
+          orderBy: { timestamp: "desc" },
+          distinct: ["userId"],
+          select: { userId: true, type: true },
         });
-        if (!reg) continue;
+        const alreadyCheckedIn = new Set(
+          latestRecords.filter((r) => r.type === "CHECK_IN").map((r) => r.userId)
+        );
+        eligibleIds = eligibleIds.filter((id) => !alreadyCheckedIn.has(id));
+      }
 
-        if (type === "CHECK_IN") {
-          const last = await prisma.attendance.findFirst({ where: { userId: member.userId, eventId }, orderBy: { timestamp: "desc" } });
-          if (last && last.type === "CHECK_IN") continue; // already checked in
-        }
-
-        const record = await prisma.attendance.create({ data: { userId: member.userId, eventId, type } });
-        records.push(record);
+      // Batch create all attendance records at once
+      let records: any[] = [];
+      if (eligibleIds.length > 0) {
+        await prisma.attendance.createMany({
+          data: eligibleIds.map((userId) => ({ userId, eventId, type })),
+        });
+        // Fetch back the created records for the response
+        records = await prisma.attendance.findMany({
+          where: { eventId, userId: { in: eligibleIds }, type },
+          orderBy: { timestamp: "desc" },
+          take: eligibleIds.length,
+        });
       }
 
       // Emit real-time update

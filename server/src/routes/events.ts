@@ -4,7 +4,7 @@ import prisma from "../lib/prisma";
 import { authenticate, requireMinRole } from "../middlewares/auth";
 import { validate } from "../middlewares/validate";
 import { auditLog } from "../middlewares/auditLog";
-import { upload } from "../middlewares/upload";
+import { upload, getUploadedFileUrl } from "../middlewares/upload";
 import { sendEventPublishedEmail, sendEventRegistrationEmail } from "../lib/emailService";
 import { sendBulkNotification, sendNotification } from "../lib/notificationService";
 import redis, { redisGet, redisSet, redisDel } from "../lib/redis";
@@ -118,7 +118,7 @@ router.post("/", authenticate, requireMinRole("STUDENT_COORDINATOR"), validate(c
 router.post("/:id/poster", authenticate, requireMinRole("STUDENT_COORDINATOR"), upload.single("poster"), async (req: Request, res: Response) => {
   try {
     if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
-    const event = await prisma.event.update({ where: { id: req.params.id }, data: { posterUrl: `/uploads/${req.file.filename}` } });
+    const event = await prisma.event.update({ where: { id: req.params.id }, data: { posterUrl: getUploadedFileUrl(req.file) } });
     await clearEventsCache();
     res.json({ event });
   } catch (err) { console.error("[Events] Poster error:", err); res.status(500).json({ error: "Internal server error" }); }
@@ -128,7 +128,7 @@ router.post("/:id/poster", authenticate, requireMinRole("STUDENT_COORDINATOR"), 
 router.post("/:id/document", authenticate, requireMinRole("STUDENT_COORDINATOR"), upload.single("document"), async (req: Request, res: Response) => {
   try {
     if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
-    const event = await prisma.event.update({ where: { id: req.params.id }, data: { documentUrl: `/uploads/${req.file.filename}` } });
+    const event = await prisma.event.update({ where: { id: req.params.id }, data: { documentUrl: getUploadedFileUrl(req.file) } });
     await clearEventsCache();
     res.json({ event });
   } catch (err) { console.error("[Events] Document upload error:", err); res.status(500).json({ error: "Internal server error" }); }

@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { authenticate, requireRole, requireMinRole } from "../middlewares/auth";
 import { auditLog } from "../middlewares/auditLog";
-import { upload } from "../middlewares/upload";
+import { upload, getUploadedFileUrl } from "../middlewares/upload";
 
 import { redisGet, redisSet, redisDel } from "../lib/redis";
 
@@ -80,7 +80,7 @@ router.post("/upload", authenticate, requireMinRole("STUDENT_COORDINATOR"), uplo
       res.status(400).json({ error: "No file uploaded" });
       return;
     }
-    const fileUrl = `/uploads/${req.file.filename}`;
+    const fileUrl = getUploadedFileUrl(req.file);
     res.json({ fileUrl });
   } catch (err) {
     console.error("[Settings] Upload error:", err);

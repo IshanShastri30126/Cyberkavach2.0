@@ -4,7 +4,7 @@ import { authenticate, requireRole, requireMinRole } from "../middlewares/auth";
 import { auditLog } from "../middlewares/auditLog";
 import { sendNotification } from "../lib/notificationService";
 import { sendAccountApprovedEmail, sendRoleUpdatedEmail } from "../lib/emailService";
-import { upload } from "../middlewares/upload";
+import { upload, getUploadedFileUrl } from "../middlewares/upload";
 import bcrypt from "bcrypt";
 import { Role } from "@prisma/client";
 import redis, { redisGet, redisSet, redisDel } from "../lib/redis";
@@ -230,7 +230,7 @@ router.patch("/profile", authenticate, upload.single("avatar"), async (req: Requ
       updateData.passwordHash = await bcrypt.hash(password, 10);
     }
     if (req.file) {
-      updateData.avatarUrl = `/uploads/${req.file.filename}`;
+      updateData.avatarUrl = getUploadedFileUrl(req.file);
     }
     if (studentId !== undefined) {
       if (studentId) {
