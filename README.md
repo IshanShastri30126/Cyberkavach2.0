@@ -9,6 +9,8 @@
 
 # 🛡️ CyberKavach 2.0
 
+**[Live Deployment: cyberkavach2-0.vercel.app](https://cyberkavach2-0.vercel.app/)**
+
 **CyberKavach 2.0** is an advanced, high-performance web platform designed to manage the operations, events, and members of the Cyber Security Club. Featuring a sleek, futuristic UI and a highly optimized backend, it acts as the central intelligence hub for all club activities.
 
 ---
