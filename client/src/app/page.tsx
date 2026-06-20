@@ -16,7 +16,7 @@ import {
   LogIn, 
   FileText 
 } from "lucide-react";
-import { api, SERVER_BASE_URL } from "@/lib/api";
+import { api, getFileUrl } from "@/lib/api";
 import PlexusBackground from "@/components/PlexusBackground";
 
 
@@ -89,7 +89,7 @@ const TypingText = () => {
   );
 };
 
-function EventCard({ ev, i, SERVER_BASE_URL }: { ev: EventItem; i: number; SERVER_BASE_URL: string }) {
+function EventCard({ ev, i }: { ev: EventItem; i: number }) {
   const cardRef = useRef<HTMLDivElement>(null);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -137,7 +137,7 @@ function EventCard({ ev, i, SERVER_BASE_URL }: { ev: EventItem; i: number; SERVE
       {/* Cover image or fallback */}
       <div className="h-44 bg-zinc-900 relative overflow-hidden border-b border-white/5 z-10">
         {ev.posterUrl ? (
-          <img src={`${SERVER_BASE_URL}${ev.posterUrl}`} alt={ev.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-95" />
+          <img src={getFileUrl(ev.posterUrl)} alt={ev.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-95" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-zinc-950 group-hover:scale-105 transition-transform duration-500">
             {/* Networking Grid Pattern for Fallback */}
@@ -181,7 +181,7 @@ function EventCard({ ev, i, SERVER_BASE_URL }: { ev: EventItem; i: number; SERVE
                 {docs.map((doc, idx) => (
                   <a
                     key={idx}
-                    href={`${SERVER_BASE_URL}${doc}`}
+                    href={getFileUrl(doc)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-xs font-mono text-zinc-400 hover:text-[#FF0000] transition truncate"
@@ -346,7 +346,7 @@ export default function LandingPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {events.map((ev, i) => (
-                <EventCard key={ev.id} ev={ev} i={i} SERVER_BASE_URL={SERVER_BASE_URL} />
+                <EventCard key={ev.id} ev={ev} i={i} />
               ))}
             </div>
           )}

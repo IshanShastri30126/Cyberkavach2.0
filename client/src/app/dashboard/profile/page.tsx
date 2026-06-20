@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api, API_BASE, SERVER_BASE_URL } from "@/lib/api";
+import { api, API_BASE, getFileUrl } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
@@ -131,7 +131,7 @@ export default function ProfilePage() {
           <div className="relative shrink-0 group">
             {user?.avatarUrl && !imgError ? (
               <img
-                src={`${SERVER_BASE_URL}${user.avatarUrl}`}
+                src={getFileUrl(user.avatarUrl)}
                 alt="Avatar"
                 onError={() => setImgError(true)}
                 className="w-24 h-24 rounded-2xl object-cover border-2 border-[#CCFF00]/60 shadow-[0_0_15px_rgba(204,255,0,0.25)]"

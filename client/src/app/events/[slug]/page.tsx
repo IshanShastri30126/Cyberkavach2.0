@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { api, SERVER_BASE_URL } from "@/lib/api";
+import { api, getFileUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, MapPin, Clock, Users, Tag, Shield, AlertCircle, CheckCircle, UserPlus, Mail, Copy, ExternalLink, Eye, X, Search, Phone, FileText, Download } from "lucide-react";
@@ -392,7 +392,7 @@ function PublicEventPageContent() {
         
         {/* Event Poster or Default Banner */}
         <img
-          src={event.posterUrl ? `${SERVER_BASE_URL}${event.posterUrl}` : "/images/cyber_banner.png"}
+          src={event.posterUrl ? getFileUrl(event.posterUrl) : "/images/cyber_banner.png"}
           alt={event.title}
           className="absolute inset-0 w-full h-full object-cover opacity-80 z-0"
         />
@@ -538,7 +538,7 @@ function PublicEventPageContent() {
                   <h2 className="text-xl font-bold font-mono tracking-tighter uppercase mb-4 text-white border-b border-red-950 pb-2">Supportive Documents</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {docs.map((docUrl, idx) => (
-                      <a key={idx} href={`${SERVER_BASE_URL}${docUrl}`} target="_blank" rel="noopener noreferrer"
+                      <a key={idx} href={getFileUrl(docUrl)} target="_blank" rel="noopener noreferrer"
                         className="flex items-center justify-between p-3 rounded-xl border border-zinc-800 bg-[#0D0F14]/30 hover:border-red-500/40 hover:bg-[#0D0F14]/50 transition-all font-mono">
                         <div className="flex items-center gap-3 min-w-0">
                           <FileText className="w-5 h-5 text-red-500 shrink-0" />
@@ -1034,7 +1034,7 @@ function PublicEventPageContent() {
           <div className="relative max-w-4xl max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <button onClick={() => setShowPosterLightbox(false)} className="absolute top-4 right-4 z-10 p-2 rounded-lg bg-black/80 hover:bg-red-500/20 text-red-500 border border-zinc-800"><X className="w-5 h-5" /></button>
             <img 
-              src={`${SERVER_BASE_URL}${event.posterUrl}`} 
+              src={getFileUrl(event.posterUrl)} 
               alt={event.title} 
               className="max-w-full max-h-[85vh] object-contain rounded-xl border border-zinc-800 shadow-2xl" 
             />

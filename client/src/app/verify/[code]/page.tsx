@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { api, SERVER_BASE_URL } from "@/lib/api";
+import { api } from "@/lib/api";
 import { ShieldCheck, ShieldX, Shield, Calendar, Award, Copy, Check, Download, ExternalLink, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 

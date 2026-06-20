@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api, SERVER_BASE_URL } from "@/lib/api";
+import { api, getFileUrl } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   BarChart3, Users, Calendar, FileCheck, Award, TrendingUp, 
@@ -284,7 +284,7 @@ export default function AnalyticsPage() {
             <div className="flex items-center gap-5 flex-col md:flex-row text-center md:text-left">
               <div className="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-[#CCFF00]/40 shadow-[0_0_20px_rgba(204,255,0,0.2)] shrink-0 mx-auto md:mx-0">
                 {topAchiever.user?.avatarUrl ? (
-                  <img src={`${SERVER_BASE_URL}${topAchiever.user.avatarUrl}`} alt={topAchiever.user.name} className="w-full h-full object-cover" />
+                  <img src={getFileUrl(topAchiever.user.avatarUrl)} alt={topAchiever.user.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
                     <Users className="w-10 h-10 text-zinc-650" />
@@ -376,7 +376,7 @@ export default function AnalyticsPage() {
                   <span className="text-xl shrink-0 font-bold">{MEDALS[idx] || "⭐"}</span>
                   <div className="relative w-8 h-8 rounded-full border border-white/10 overflow-hidden shrink-0">
                     {m.avatarUrl ? (
-                      <img src={`${SERVER_BASE_URL}${m.avatarUrl}`} alt={m.name} className="w-full h-full object-cover" />
+                      <img src={getFileUrl(m.avatarUrl)} alt={m.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-zinc-900 flex items-center justify-center text-[10px] font-bold text-zinc-400">
                         {m.name[0]}
@@ -552,7 +552,7 @@ export default function AnalyticsPage() {
                   <div className="flex items-center gap-3 pb-3 border-b border-white/5">
                     <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shrink-0">
                       {c.avatarUrl ? (
-                        <img src={`${SERVER_BASE_URL}${c.avatarUrl}`} alt={c.name} className="w-full h-full object-cover" />
+                        <img src={getFileUrl(c.avatarUrl)} alt={c.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full bg-zinc-900 flex items-center justify-center font-bold text-sm text-zinc-400">
                           {c.name[0]}

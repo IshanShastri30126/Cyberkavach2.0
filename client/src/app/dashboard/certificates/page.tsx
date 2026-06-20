@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api, apiUpload, SERVER_BASE_URL, API_BASE } from "@/lib/api";
+import { api, apiUpload, getFileUrl, API_BASE } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -369,7 +369,7 @@ export default function CertificatesPage() {
 
                 <div className="h-24 flex items-center justify-center bg-black border-b overflow-hidden" style={{ borderColor: "#1A1E26" }}>
                   {t.fileType && t.fileType.toLowerCase() !== "pdf" ? (
-                    <img src={`${SERVER_BASE_URL}${t.fileUrl}`} alt={t.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-400" />
+                    <img src={getFileUrl(t.fileUrl)} alt={t.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-400" />
                   ) : (
                     <div className="flex flex-col items-center gap-1">
                       <FileCheck className="w-7 h-7 text-[#4B5563] group-hover:text-[#CCFF00] transition-colors" />
@@ -511,13 +511,13 @@ export default function CertificatesPage() {
                           <div className="flex items-center gap-3">
                             {c.fileUrl && (
                               <>
-                                <a href={`${SERVER_BASE_URL}${c.fileUrl}`} target="_blank" rel="noopener noreferrer"
+                                <a href={getFileUrl(c.fileUrl)} target="_blank" rel="noopener noreferrer"
                                   className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 hover:underline transition-colors"
                                   style={{ color: "#CCFF00" }}
                                 >
                                   <Eye className="w-3.5 h-3.5" /> VIEW
                                 </a>
-                                <a href={`${SERVER_BASE_URL}${c.fileUrl}`} download target="_blank" rel="noopener noreferrer"
+                                <a href={getFileUrl(c.fileUrl)} download target="_blank" rel="noopener noreferrer"
                                   className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 hover:underline transition-colors text-[#FF4D00]"
                                 >
                                   <Download className="w-3.5 h-3.5" /> DL

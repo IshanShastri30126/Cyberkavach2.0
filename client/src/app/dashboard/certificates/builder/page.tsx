@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api, apiUpload, SERVER_BASE_URL } from "@/lib/api";
+import { api, apiUpload, getFileUrl } from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
 import { 
   Save, Upload, Layout, Settings2, Crop, Scissors, Image as ImageIcon, 
@@ -250,7 +250,7 @@ function CertificateBuilderContent() {
       if (template) {
         setTemplateName(template.name);
         if (template.fileUrl) {
-          setBackgroundUrl(`${SERVER_BASE_URL}${template.fileUrl}`);
+          setBackgroundUrl(getFileUrl(template.fileUrl));
         }
         if (template.fields && template.fields.type === "canvas_builder") {
           if (template.fields.themeColors) {
@@ -341,7 +341,7 @@ function CertificateBuilderContent() {
   const handleUserTemplateSwitch = (template: any) => {
     setTemplateName(template.name);
     if (template.fileUrl) {
-      setBackgroundUrl(`${SERVER_BASE_URL}${template.fileUrl}`);
+      setBackgroundUrl(getFileUrl(template.fileUrl));
     }
     
     if (template.fields && template.fields.type === "canvas_builder") {
@@ -854,7 +854,7 @@ function CertificateBuilderContent() {
                       <span className="text-[8px] font-mono text-[#4B5563]">PDF</span>
                     </div>
                   ) : (
-                    <img src={`${SERVER_BASE_URL}${t.fileUrl}`} alt={t.name} className="w-full h-full object-cover" />
+                    <img src={getFileUrl(t.fileUrl)} alt={t.name} className="w-full h-full object-cover" />
                   )}
                 </div>
               )}

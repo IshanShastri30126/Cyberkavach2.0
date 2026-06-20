@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api, apiUpload, SERVER_BASE_URL } from "@/lib/api";
+import { api, apiUpload, getFileUrl } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -374,7 +374,7 @@ export default function EventsPage() {
         }));
       } catch {}
     }
-    setPosterPreview(event.posterUrl ? `${SERVER_BASE_URL}${event.posterUrl}` : null);
+    setPosterPreview(event.posterUrl ? getFileUrl(event.posterUrl) : null);
     setPosterFile(null);
     
     // Parse documents
@@ -1259,7 +1259,7 @@ export default function EventsPage() {
               {/* Poster/Header */}
               <div className="h-44 bg-gradient-to-br from-[#0D0F14]/50 to-black flex items-center justify-center relative overflow-hidden">
                 {event.posterUrl ? (
-                  <img src={`${SERVER_BASE_URL}${event.posterUrl}`} alt={event.title} className="w-full h-full object-cover" />
+                  <img src={getFileUrl(event.posterUrl)} alt={event.title} className="w-full h-full object-cover" />
                 ) : (
                   <Calendar className="w-12 h-12 opacity-20" style={{ color: "#CCFF00" }} />
                 )}
@@ -1334,7 +1334,7 @@ export default function EventsPage() {
                         {docs.map((doc, idx) => (
                           <a
                             key={idx}
-                            href={`${SERVER_BASE_URL}${doc}`}
+                            href={getFileUrl(doc)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-450 hover:text-[#CCFF00] transition truncate"

@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api, apiUpload, SERVER_BASE_URL } from "@/lib/api";
+import { api, apiUpload } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { ClipboardList, CheckCircle, XCircle, Clock, Plus, X, ChevronDown, ChevronUp, Eye, MessageSquare, Paperclip, FileText, Upload, Check, Send, Zap, Shield, AlertTriangle, ArrowRight, Filter } from "lucide-react";
 

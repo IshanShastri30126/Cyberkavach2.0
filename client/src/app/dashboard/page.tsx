@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api, SERVER_BASE_URL } from "@/lib/api";
+import { api, getFileUrl } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
@@ -962,7 +962,7 @@ export default function DashboardPage() {
                           <div className="h-32 sm:h-40 relative overflow-hidden">
                             {event.posterUrl ? (
                               <img
-                                src={`${SERVER_BASE_URL}${event.posterUrl}`}
+                                src={getFileUrl(event.posterUrl)}
                                 alt={event.title}
                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                               />
@@ -1034,7 +1034,7 @@ export default function DashboardPage() {
                                       {docs.map((doc, idx) => (
                                         <a
                                           key={idx}
-                                          href={`${SERVER_BASE_URL}${doc}`}
+                                          href={getFileUrl(doc)}
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-400 hover:text-[#CCFF00] transition truncate"
@@ -1099,7 +1099,7 @@ export default function DashboardPage() {
                           <div className="h-32 sm:h-40 relative overflow-hidden">
                             {event.posterUrl ? (
                               <img
-                                src={`${SERVER_BASE_URL}${event.posterUrl}`}
+                                src={getFileUrl(event.posterUrl)}
                                 alt={event.title}
                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                               />

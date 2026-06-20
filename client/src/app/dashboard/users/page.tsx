@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api, SERVER_BASE_URL } from "@/lib/api";
+import { api, getFileUrl } from "@/lib/api";
 import { motion } from "framer-motion";
 import { 
   Users, UserCheck, UserX, Search, Shield, ChevronDown, 
@@ -160,7 +160,7 @@ export default function UsersPage() {
                     <td>
                       <div className="flex items-center gap-2.5">
                         {u.avatarUrl ? (
-                          <img src={`${SERVER_BASE_URL}${u.avatarUrl}`} alt="Avatar" className="w-9 h-9 rounded-lg object-cover border border-violet-500/20" />
+                          <img src={getFileUrl(u.avatarUrl)} alt="Avatar" className="w-9 h-9 rounded-lg object-cover border border-violet-500/20" />
                         ) : (
                           <DefaultAvatar className="w-9 h-9" />
                         )}

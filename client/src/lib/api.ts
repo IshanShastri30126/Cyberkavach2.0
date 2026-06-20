@@ -3,6 +3,22 @@ import Cookies from "js-cookie";
 export const SERVER_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:4000";
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || `${SERVER_BASE_URL}/api`;
 
+/**
+ * Resolves a file/image URL that may be either:
+ * - A full absolute URL (from Cloudinary: https://res.cloudinary.com/...)
+ * - A relative path (from local disk: /uploads/filename.jpg)
+ * Returns the URL ready for use in <img src> or <a href>.
+ */
+export function getFileUrl(url: string | undefined | null): string {
+  if (!url) return "";
+  // Already a full URL (Cloudinary, external CDN, data URI, etc.)
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+    return url;
+  }
+  // Relative path — prepend server base URL
+  return `${SERVER_BASE_URL}${url}`;
+}
+
 interface FetchOptions extends RequestInit {
   token?: string;
 }

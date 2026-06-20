@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api, apiUpload, SERVER_BASE_URL } from "@/lib/api";
+import { api, apiUpload, getFileUrl } from "@/lib/api";
 import { 
   Plus, Trash2, Save, Users, GripVertical, CheckCircle, X, 
   Edit, Eye, Upload, Link as LinkIcon, Globe, Shield, 
@@ -127,7 +127,7 @@ export default function LandingManagementPage() {
       const res = await apiUpload<{ fileUrl: string }>("/settings/upload", fd, token || undefined);
       setActiveMember({
         ...activeMember,
-        [fieldName]: `${SERVER_BASE_URL}${res.fileUrl}`
+        [fieldName]: getFileUrl(res.fileUrl)
       });
     } catch (err) {
       alert(err instanceof Error ? err.message : "Upload failed");

@@ -8,7 +8,7 @@ import {
   Building, Share2, Link2, Eye, ShieldAlert, Award,
   Check, Lock, Sparkles, LogIn, Users, Info
 } from "lucide-react";
-import { api, SERVER_BASE_URL } from "@/lib/api";
+import { api } from "@/lib/api";
 import { CyberKavachLogo } from "@/components/CyberKavachLogo";
 
 // Icon components for brands

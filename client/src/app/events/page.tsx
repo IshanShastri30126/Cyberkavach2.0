@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { api, SERVER_BASE_URL } from "@/lib/api";
+import { api, getFileUrl } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Calendar, Search, Tag, Users, Clock, MapPin, Shield } from "lucide-react";
@@ -120,7 +120,7 @@ export default function PublicEventsPage() {
                     <div className="h-48 relative overflow-hidden bg-zinc-900">
                       {event.posterUrl ? (
                         <img 
-                          src={`${SERVER_BASE_URL}${event.posterUrl}`} 
+                          src={getFileUrl(event.posterUrl)} 
                           alt={event.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-500" 
                         />
