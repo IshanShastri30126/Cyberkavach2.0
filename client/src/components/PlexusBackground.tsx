@@ -15,6 +15,12 @@ interface Particle {
   offsetY: number; // Mouse repulsion offset Y
 }
 
+interface ClusterCenter {
+  x: number;
+  y: number;
+  z: number;
+}
+
 function drawLightning(
   ctx: CanvasRenderingContext2D,
   x1: number,
