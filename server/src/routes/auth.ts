@@ -9,8 +9,9 @@ import { authenticate, AuthPayload } from "../middlewares/auth";
 import { validate } from "../middlewares/validate";
 import { auditLog } from "../middlewares/auditLog";
 import { sendNotification } from "../lib/notificationService";
-import { sendWelcomeEmail, sendLoginNotificationEmail } from "../lib/emailService";
+import { sendWelcomeEmail, sendLoginNotificationEmail, sendPasswordResetEmail } from "../lib/emailService";
 import { OAuth2Client } from "google-auth-library";
+import crypto from "crypto";
 
 const router = Router();
 const googleClient = new OAuth2Client(config.google.clientId);
@@ -195,6 +196,79 @@ router.post("/login", validate(loginSchema), async (req: Request, res: Response)
     });
   } catch (err) {
     console.error("[Auth] Login error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── POST /api/auth/forgot-password ────────────────────────
+
+router.post("/forgot-password", async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      res.status(400).json({ error: "Email is required" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !user.isActive) {
+      // Return a success response to prevent email enumeration attacks
+      res.json({ message: "If that email exists, a reset link has been sent." });
+      return;
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { resetToken, resetTokenExpiry },
+    });
+
+    await sendPasswordResetEmail({ email: user.email }, resetToken);
+
+    res.json({ message: "If that email exists, a reset link has been sent." });
+  } catch (err) {
+    console.error("[Auth] Forgot password error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── POST /api/auth/reset-password ─────────────────────────
+
+router.post("/reset-password", async (req: Request, res: Response) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword || newPassword.length < 6) {
+      res.status(400).json({ error: "Invalid token or password" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { resetToken: token } });
+
+    if (!user || !user.resetTokenExpiry || user.resetTokenExpiry < new Date()) {
+      res.status(400).json({ error: "Token is invalid or has expired" });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: { action: "USER_PASSWORD_RESET", userId: user.id, context: {} },
+    });
+
+    res.json({ message: "Password updated successfully" });
+  } catch (err) {
+    console.error("[Auth] Reset password error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });

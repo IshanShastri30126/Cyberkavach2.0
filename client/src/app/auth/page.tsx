@@ -121,18 +121,24 @@ function LoginPageContent() {
       <BinarySkullBackground />
       <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: "easeOut" }} className={`w-full ${isLogin ? "max-w-md" : "max-w-xl"} transition-all duration-300 relative z-10`}>
         {/* Logo */}
-        <div className="text-center mb-8">
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.5 }} className="inline-flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-900 via-red-600 to-orange-500 flex items-center justify-center shadow-[0_0_20px_rgba(255,0,0,0.6)] border border-red-500">
-              <Shield className="w-7 h-7 text-white" />
+        <div className="flex justify-center mb-8">
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.5 }} className="inline-flex items-center gap-4">
+            <div className="w-16 h-16 relative">
+              <Image src="/ck-logo.svg" alt="CyberKavach Logo" fill className="object-contain" priority />
             </div>
-            <span className="text-2xl font-bold text-white tracking-widest font-mono">CYBERKAVACH</span>
+            <div className="flex flex-col items-start justify-center pt-1">
+              <span className="text-3xl font-black tracking-[0.15em] font-mono leading-none">
+                <span className="text-white">CYBER</span><span className="text-[#FF003C]">KAVACH</span>
+              </span>
+              <span className="text-[11px] font-bold text-[#CCFF00] tracking-[0.25em] font-mono mt-2">
+                CYBER SECURITY CLUB
+              </span>
+            </div>
           </motion.div>
-          <p className="text-slate-400 text-sm">Digital Operations Hub — Secure Access</p>
         </div>
 
         {/* Card */}
-        <div className="ck-glass rounded-xl p-8 shadow-2xl relative overflow-hidden border border-red-900/30">
+        <div className="ck-glass rounded-xl p-5 sm:p-8 shadow-2xl relative overflow-hidden border border-red-900/30">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-50" />
           
           {/* Tab Toggle */}
