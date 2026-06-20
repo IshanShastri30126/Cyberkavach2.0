@@ -18,7 +18,10 @@ export const CyberKavachLogo: React.FC<CyberKavachLogoProps> = ({
 }) => {
   // Parent variants to propagate hover state
   const containerVariants = {
-    initial: { scale: 1 },
+    initial: { 
+      scale: 1,
+      filter: "drop-shadow(0 0 0px rgba(255, 0, 60, 0)) drop-shadow(0 0 0px rgba(204, 255, 0, 0))"
+    },
     hover: {
       scale: 1.08,
       filter: "drop-shadow(0 0 16px rgba(255, 0, 60, 0.4)) drop-shadow(0 0 8px rgba(204, 255, 0, 0.2))",

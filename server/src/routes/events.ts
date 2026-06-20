@@ -196,7 +196,7 @@ router.get("/all", authenticate, requireMinRole("TECH"), async (req: Request, re
     const cacheKey = `events:all:${search || "none"}:${status || "all"}:${tag || "all"}`;
     const cached = await redisGet(cacheKey);
     if (cached) {
-      res.json(JSON.parse(cached));
+      res.json({ events: JSON.parse(cached) });
       return;
     }
 

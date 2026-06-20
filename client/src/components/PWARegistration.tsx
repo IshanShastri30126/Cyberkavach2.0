@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Download, MonitorPlay } from "lucide-react";
+import { Download, MonitorPlay, X } from "lucide-react";
 
 export function PWARegistration() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
     // 1. Register Service Worker
@@ -62,15 +63,20 @@ export function PWARegistration() {
     }
   };
 
-  if (!isInstallable || isStandalone) {
+  if (!isInstallable || isStandalone || isDismissed) {
     return null;
   }
 
   return (
     <div className="fixed bottom-6 left-6 z-[60] max-w-xs p-4 rounded-xl border border-[var(--ck-lime)] bg-black/90 shadow-[0_0_20px_rgba(204,255,0,0.15)] flex flex-col gap-2 backdrop-blur-md animate-bounce-short">
-      <div className="flex items-center gap-2">
-        <div className="w-2 h-2 rounded-full bg-[var(--ck-lime)] animate-ping" />
-        <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[var(--ck-lime)]">PWA DETECTED</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-[var(--ck-lime)] animate-ping" />
+          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[var(--ck-lime)]">PWA DETECTED</span>
+        </div>
+        <button onClick={() => setIsDismissed(true)} className="text-[#8892A4] hover:text-white transition-colors">
+          <X className="w-3.5 h-3.5" />
+        </button>
       </div>
       <p className="text-[11px] text-[#8892A4] leading-relaxed">
         Install CyberKavach to your home screen for rapid offline check-in capability.
